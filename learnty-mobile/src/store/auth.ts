@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { supabase, Profile, UserAchievement } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 
+// Export timer mode types for use across components
+export type TimerMode = 'focus' | 'shortBreak' | 'longBreak'
+
 interface AuthState {
   user: User | null
   profile: Profile | null
@@ -10,7 +13,7 @@ interface AuthState {
   hasCompletedOnboarding: boolean
   timeLeft: number
   isTimerActive: boolean
-  timerMode: 'focus' | 'shortBreak' | 'longBreak'
+  timerMode: TimerMode
   setUser: (user: User | null) => void
   setProfile: (profile: Profile | null) => void
   setAchievements: (achievements: UserAchievement[]) => void
@@ -25,15 +28,28 @@ interface AuthState {
   initializeAuth: () => Promise<void>
   setTimerState: (state: Partial<Pick<AuthState, 'timeLeft' | 'isTimerActive' | 'timerMode'>>) => void
   decrementTimer: () => void
-  resetTimer: (mode: 'focus' | 'shortBreak' | 'longBreak') => void
+  resetTimer: (mode: TimerMode) => void
 }
+
+// Safely get onboarding status from localStorage
+const getOnboardingStatus = (): boolean => {
+  try {
+    return localStorage.getItem('onboarding_completed') === 'true'
+  } catch (error) {
+    console.warn('[Auth] localStorage not available:', error)
+    return false
+  }
+}
+
+// Track if we're already loading user data to prevent duplicate requests
+let isLoadingUserData = false
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   achievements: [],
   isLoading: true,
-  hasCompletedOnboarding: localStorage.getItem('onboarding_completed') === 'true',
+  hasCompletedOnboarding: getOnboardingStatus(),
   timeLeft: 25 * 60,
   isTimerActive: false,
   timerMode: 'focus',
@@ -129,12 +145,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log('[Auth] Sign in successful, user:', data.user.email)
       
-      // Set user and stop loading immediately
-      set({ user: data.user, isLoading: false })
+      // Set user first
+      set({ user: data.user })
       
-      // Load user data in background
-      get().loadProfile().catch(err => console.error('Failed to load profile:', err))
-      get().loadAchievements().catch(err => console.error('Failed to load achievements:', err))
+      // Load user data and keep loading state until both complete
+      try {
+        await Promise.all([
+          get().loadProfile(),
+          get().loadAchievements()
+        ])
+      } catch (err) {
+        console.error('Failed to load user data:', err)
+      } finally {
+        set({ isLoading: false })
+      }
       
     } catch (error: any) {
       set({ isLoading: false })
@@ -153,8 +177,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isLoading: false 
     })
     
-    // Clear onboarding status
-    localStorage.removeItem('onboarding_completed')
+    // Clear onboarding status safely
+    try {
+      localStorage.removeItem('onboarding_completed')
+    } catch (error) {
+      console.warn('[Auth] Could not clear localStorage:', error)
+    }
     set({ hasCompletedOnboarding: false })
     
     // Sign out from Supabase
@@ -242,7 +270,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   completeOnboarding: () => {
-    localStorage.setItem('onboarding_completed', 'true')
+    try {
+      localStorage.setItem('onboarding_completed', 'true')
+    } catch (error) {
+      console.warn('[Auth] Could not save to localStorage:', error)
+    }
     set({ hasCompletedOnboarding: true })
   },
 
@@ -311,11 +343,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (user) {
         console.log('[Auth] User found:', user.email)
-        set({ user, isLoading: false })
+        set({ user })
         
-        // Load user data in background
-        get().loadProfile().catch(err => console.error('Failed to load profile:', err))
-        get().loadAchievements().catch(err => console.error('Failed to load achievements:', err))
+        // Load user data before marking as loaded
+        try {
+          await Promise.all([
+            get().loadProfile(),
+            get().loadAchievements()
+          ])
+        } catch (err) {
+          console.error('Failed to load user data:', err)
+        } finally {
+          set({ isLoading: false })
+        }
       } else {
         console.log('[Auth] No user session found')
         set({ isLoading: false, user: null })
@@ -331,12 +371,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 console.log('[Auth] Initializing auth store...')
 useAuthStore.getState().initializeAuth()
 
-// Listen to auth changes - KEEP SIMPLE, no async operations
+// Listen to auth changes - prevent infinite loops with flag
 supabase.auth.onAuthStateChange((_event, session) => {
   console.log('[Auth] State change event:', _event, 'hasSession:', !!session)
   
-  // NEVER use async operations in this callback
-  const { setUser, loadProfile, loadAchievements } = useAuthStore.getState()
+  const { setUser } = useAuthStore.getState()
   
   if (_event === 'SIGNED_OUT') {
     console.log('[Auth] User signed out event')
@@ -346,16 +385,28 @@ supabase.auth.onAuthStateChange((_event, session) => {
       achievements: [],
       isLoading: false
     })
-  } else if (session?.user) {
+    isLoadingUserData = false
+  } else if (session?.user && _event === 'SIGNED_IN') {
+    // Only load on SIGNED_IN event, not USER_UPDATED to prevent infinite loops
     console.log('[Auth] Auth event with user:', session.user.email)
     setUser(session.user)
     
-    // Load data in background (outside the callback)
-    if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
+    // Prevent duplicate loading
+    if (!isLoadingUserData) {
+      isLoadingUserData = true
+      const { loadProfile, loadAchievements } = useAuthStore.getState()
+      
       Promise.all([
         loadProfile(),
         loadAchievements()
-      ]).catch(err => console.error('Failed to load user data:', err))
+      ])
+        .catch(err => console.error('Failed to load user data:', err))
+        .finally(() => {
+          isLoadingUserData = false
+        })
     }
+  } else if (session?.user && _event !== 'SIGNED_IN') {
+    // For other events, just update the user without reloading data
+    setUser(session.user)
   }
 })
