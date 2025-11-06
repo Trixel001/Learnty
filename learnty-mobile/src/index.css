@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 60-30-10 Color System */
+    /* 60% - Background (#F5F5F5) */
+    --background: 0 0% 96.1%;
+    --foreground: 209 34% 24%; /* #2D3748 - Primary text */
+    
+    /* 30% - Cards (#FFFFFF) */
+    --card: 0 0% 100%;
+    --card-foreground: 209 34% 24%;
+    
+    /* 10% - Accent/CTA (#3B82F6) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary surfaces */
+    --secondary: 220 13% 91%; /* Match border color for subtle backgrounds */
+    --secondary-foreground: 209 34% 24%;
+    
+    /* Muted elements */
+    --muted: 220 13% 91%; /* Light gray for subtle backgrounds */
+    --muted-foreground: 214 18% 35%; /* #4A5568 - Secondary text */
+    
+    /* Borders (#E5E7EB) */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    
+    /* Accent (use primary for consistency) */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 209 34% 24%;
+    
+    /* Destructive */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Focus ring */
+    --ring: 217 91% 60%;
+    
+    /* Border radius */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* 60-30-10 Color System - Dark Mode */
+    /* 60% - Background */
+    --background: 222 47% 11%; /* #0F172A - Dark background */
+    --foreground: 210 40% 98%; /* #F8FAFC - Light text */
+    
+    /* 30% - Cards */
+    --card: 217 33% 17%; /* #1E293B - Dark card background */
+    --card-foreground: 210 40% 98%;
+    
+    /* 10% - Accent/CTA */
+    --primary: 217 91% 60%; /* Keep primary blue */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary surfaces */
+    --secondary: 215 28% 17%; /* #1E293B */
+    --secondary-foreground: 210 40% 98%;
+    
+    /* Muted elements */
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%; /* #94A3B8 */
+    
+    /* Borders */
+    --border: 215 28% 25%; /* #334155 */
+    --input: 215 28% 25%;
+    
+    /* Accent */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Popover */
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Destructive */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Focus ring */
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
+  html,
+  body,
+  #root {
+    background-color: hsl(var(--background));
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+    color: hsl(var(--foreground));
+  }
+
+  /* Safe area support for iOS */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent pull-to-refresh on mobile */
+  body {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Better touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent text selection on tap */
+  button, a {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Better focus styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg;
+  }
+}
