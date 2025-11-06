@@ -1,0 +1,21 @@
+CREATE TABLE milestones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL,
+    book_id UUID,
+    chapter_id UUID,
+    user_id UUID,
+    title TEXT NOT NULL,
+    description TEXT,
+    order_index INTEGER NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    difficulty_level TEXT DEFAULT 'intermediate',
+    estimated_minutes INTEGER DEFAULT 20,
+    learning_objectives TEXT[] DEFAULT '{}',
+    key_concepts TEXT[] DEFAULT '{}',
+    content_preview TEXT,
+    xp_reward INTEGER DEFAULT 10,
+    completion_score INTEGER DEFAULT 0,
+    retry_count INTEGER DEFAULT 0,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
