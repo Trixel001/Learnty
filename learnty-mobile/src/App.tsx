@@ -168,9 +168,8 @@ function AppContent() {
   const location = useLocation()
   const mountedRef = useRef(true)
 
-  // Global timer effect - with mount safety and stable references
+  // Global timer effect - simplified and safe
   const isTimerActive = useAuthStore((state) => state.isTimerActive)
-  const decrementTimer = useAuthStore((state) => state.decrementTimer)
 
   useEffect(() => {
     mountedRef.current = true
@@ -181,21 +180,23 @@ function AppContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
+    
     if (isTimerActive && mountedRef.current) {
       interval = setInterval(() => {
-        // Only update if component is still mounted
+        // Get fresh reference to avoid stale closure
         if (mountedRef.current) {
-          // Get fresh reference to avoid stale closure
           useAuthStore.getState().decrementTimer()
-        } else if (interval) {
-          clearInterval(interval)
         }
       }, 1000)
     }
+    
+    // Cleanup function properly clears interval
     return () => {
-      if (interval) clearInterval(interval)
+      if (interval) {
+        clearInterval(interval)
+      }
     }
-  }, [isTimerActive]) // REMOVED decrementTimer from dependencies
+  }, [isTimerActive])
 
   console.log('AppContent render:', { user: !!user, hasCompletedOnboarding, isLoading, pathname: location.pathname })
 
