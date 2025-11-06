@@ -15,14 +15,37 @@ interface AIChatbotProps {
   position?: 'bottom-right' | 'bottom-left' | 'top-right'
   isOpen?: boolean
   onClose?: () => void
+  onOpen?: () => void
 }
 
-export default function AIChatbot({ position = 'bottom-right', isOpen: externalIsOpen, onClose }: AIChatbotProps) {
+export default function AIChatbot({ 
+  position = 'bottom-right', 
+  isOpen: externalIsOpen, 
+  onClose,
+  onOpen 
+}: AIChatbotProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false)
-  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen
-  const setIsOpen = externalIsOpen !== undefined ? 
-    () => {} : // External control - don't update internal state
-    setInternalIsOpen
+  
+  // Properly handle controlled vs uncontrolled state
+  const isControlled = externalIsOpen !== undefined
+  const isOpen = isControlled ? externalIsOpen : internalIsOpen
+  
+  const handleOpen = () => {
+    if (isControlled) {
+      onOpen?.()
+    } else {
+      setInternalIsOpen(true)
+    }
+  }
+  
+  const handleClose = () => {
+    if (isControlled) {
+      onClose?.()
+    } else {
+      setInternalIsOpen(false)
+    }
+  }
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -46,6 +69,14 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
+    // Validate environment variables
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    if (!supabaseUrl) {
+      toast.error('Configuration error: Missing Supabase URL')
+      console.error('VITE_SUPABASE_URL is not defined')
+      return
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -58,12 +89,19 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
     setIsLoading(true)
 
     try {
+      const session = await supabase.auth.getSession()
+      const accessToken = session?.data?.session?.access_token
+      
+      if (!accessToken) {
+        throw new Error('Please sign in to use the AI assistant')
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chatbot`,
+        `${supabaseUrl}/functions/v1/ai-chatbot`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -75,13 +113,21 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
 
       if (!response.ok) {
         let errorMessage = 'Failed to get response from AI'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error?.message || errorMessage
-        } catch {
-          // If response is not JSON, use generic error
-          errorMessage = 'Server error. Please try again.'
+        
+        // Safely try to parse error response
+        const contentType = response.headers.get('content-type')
+        if (contentType?.includes('application/json')) {
+          try {
+            const errorData = await response.json()
+            errorMessage = errorData?.error?.message || errorData?.message || errorMessage
+          } catch (parseError) {
+            console.error('Failed to parse error response:', parseError)
+          }
+        } else {
+          // Non-JSON error response
+          errorMessage = `Server error (${response.status}): ${response.statusText}`
         }
+        
         throw new Error(errorMessage)
       }
 
@@ -93,17 +139,24 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
         throw new Error('Invalid response from AI. Please try again.')
       }
       
+      // Safe access to nested response data
+      const responseContent = data?.data?.response
+      if (!responseContent) {
+        throw new Error('AI response is empty. Please try again.')
+      }
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.data.response,
+        content: responseContent,
         timestamp: new Date()
       }
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error sending message:', error)
-      toast.error('Failed to get AI response')
+      const errorMsg = error instanceof Error ? error.message : 'Failed to get AI response'
+      toast.error(errorMsg)
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -164,7 +217,7 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => setIsOpen(true)}
+            onClick={handleOpen}
             className={`fixed ${getPositionClasses()} z-40 w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-full shadow-lg flex items-center justify-center`}
           >
             <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -194,7 +247,7 @@ export default function AIChatbot({ position = 'bottom-right', isOpen: externalI
                 </div>
               </div>
               <button
-                onClick={() => onClose ? onClose() : setIsOpen(false)}
+                onClick={handleClose}
                 className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
