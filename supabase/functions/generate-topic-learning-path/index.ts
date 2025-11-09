@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Max-Age': '86400',
   };
 
   if (req.method === 'OPTIONS') {
@@ -20,12 +20,17 @@ Deno.serve(async (req) => {
       throw new Error('Topic and User ID are required');
     }
 
+    // 🔐 SECURE: Get all credentials from environment variables
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY') || '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';
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
     if (!serviceRoleKey || !supabaseUrl) {
-      throw new Error('Missing required environment variables');
+      throw new Error('Supabase configuration missing. Set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.');
+    }
+
+    if (!openrouterApiKey) {
+      throw new Error('OPENROUTER_API_KEY not configured. Please set in Supabase Edge Functions secrets.');
     }
 
     console.log(`[Learning Path] Generating neuroscience-optimized path for: ${topic}`);
@@ -187,7 +192,7 @@ Generate the optimal learning path now:`;
         headers: {
           'Authorization': `Bearer ${openrouterApiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://z0cd8od18i80.space.minimax.io',
+          'HTTP-Referer': 'https://learnty.app',
           'X-Title': 'Learnty Topic Learning Path Generator'
         },
         body: JSON.stringify({
