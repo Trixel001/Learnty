@@ -21,12 +21,17 @@ Deno.serve(async (req) => {
       throw new Error('Book ID and content text are required');
     }
 
+    // 🔐 SECURE: Get all credentials from environment variables
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY') || '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';
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
     if (!serviceRoleKey || !supabaseUrl) {
-      throw new Error('Supabase configuration missing');
+      throw new Error('Supabase configuration missing. Set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.');
+    }
+
+    if (!openrouterApiKey) {
+      throw new Error('OPENROUTER_API_KEY not configured. Please set in Supabase Edge Functions secrets.');
     }
 
     // Get user authentication
@@ -158,14 +163,14 @@ Generate neuroscience-optimized flashcards now:`;
       headers: {
         'Authorization': `Bearer ${openrouterApiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://z0cd8od18i80.space.minimax.io',
+        'HTTP-Referer': 'https://learnty.app',
         'X-Title': 'Learnty AI Flashcard Generation'
       },
       body: JSON.stringify({
         model: 'mistralai/mistral-7b-instruct:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 4000,
-        temperature: 0.8, // Slightly higher for creative memory hooks
+        temperature: 0.8,
         response_format: { type: 'json_object' }
       })
     });
@@ -189,7 +194,6 @@ Generate neuroscience-optimized flashcards now:`;
     
     try {
       const parsed = JSON.parse(cleanResponse);
-      // Handle both direct array and wrapped object formats
       flashcards = Array.isArray(parsed) ? parsed : (parsed.flashcards || []);
     } catch (e) {
       console.error('[AI Flashcards] Parse error:', e);
@@ -230,7 +234,6 @@ Generate neuroscience-optimized flashcards now:`;
       });
     } catch (logError) {
       console.error('[AI Flashcards] Logging error:', logError);
-      // Don't fail the whole operation if logging fails
     }
 
     // Save AI generated content metadata
@@ -255,7 +258,7 @@ Generate neuroscience-optimized flashcards now:`;
             enhancement_version: 'neuroscience-v2',
             techniques_used: flashcards.map(f => f.memory_technique).filter(Boolean)
           },
-          quality_score: 0.90 // Higher score for enhanced flashcards
+          quality_score: 0.90
         })
       });
 
@@ -265,7 +268,6 @@ Generate neuroscience-optimized flashcards now:`;
       }
     } catch (metaError) {
       console.error('[AI Flashcards] Metadata save error:', metaError);
-      // Continue even if metadata fails
     }
 
     // Insert flashcards into srs_cards table
@@ -278,7 +280,7 @@ Generate neuroscience-optimized flashcards now:`;
       tags: card.tags || [],
       ai_generated: true,
       ai_generation_id: aiGenerationId,
-      ai_confidence: 0.90, // Higher confidence for enhanced cards
+      ai_confidence: 0.90,
       easiness_factor: 2.5,
       interval: 0,
       repetitions: 0,
