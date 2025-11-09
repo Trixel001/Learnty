@@ -21,13 +21,13 @@ Deno.serve(async (req) => {
       throw new Error('Book ID and content text are required');
     }
 
-    // 🔐 SECURE: Get all credentials from environment variables
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    // 🔐 SECURE: Get all credentials from environment variables (matching your Supabase secret names)
+    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('BASE_URL');
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
     if (!serviceRoleKey || !supabaseUrl) {
-      throw new Error('Supabase configuration missing. Set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.');
+      throw new Error('Supabase configuration missing. Set SERVICE_ROLE_KEY and BASE_URL.');
     }
 
     if (!openrouterApiKey) {

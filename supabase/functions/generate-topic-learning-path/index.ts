@@ -20,13 +20,13 @@ Deno.serve(async (req) => {
       throw new Error('Topic and User ID are required');
     }
 
-    // 🔐 SECURE: Get all credentials from environment variables
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    // 🔐 SECURE: Get all credentials from environment variables (matching your Supabase secret names)
+    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('BASE_URL');
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
     if (!serviceRoleKey || !supabaseUrl) {
-      throw new Error('Supabase configuration missing. Set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.');
+      throw new Error('Supabase configuration missing. Set SERVICE_ROLE_KEY and BASE_URL.');
     }
 
     if (!openrouterApiKey) {
@@ -149,14 +149,14 @@ Return ONLY valid JSON (no markdown):
           "duration": 5
         }
       ],
-      "keyConcepts": ["concept1", "concept2"], // For flashcard generation
+      "keyConcepts": ["concept1", "concept2"],
       "practicalExercise": "Hands-on task description",
       "memoryHook": "Memorable phrase/image/acronym",
       "realWorldExample": "Practical application",
-      "interleavedWith": ["earlier_topic_reference"], // Topics to review
+      "interleavedWith": ["earlier_topic_reference"],
       "successCriteria": "Can demonstrate X without help",
       "commonPitfalls": ["What learners struggle with"],
-      "reviewSchedule": [1, 3, 7] // Days to review this milestone
+      "reviewSchedule": [1, 3, 7]
     }
   ],
   "reviewCheckpoints": [
@@ -334,15 +334,12 @@ Generate the optimal learning path now:`;
     // Create milestone dependencies (with interleaving)
     const dependencies = [];
     for (let i = 1; i < insertedMilestones.length; i++) {
-      // Sequential dependency
       dependencies.push({
         milestone_id: insertedMilestones[i].id,
         depends_on_milestone_id: insertedMilestones[i - 1].id
       });
       
-      // Add interleaving dependencies (review earlier milestones)
       if (i >= 3 && i % 3 === 0) {
-        // Every 3rd milestone reviews milestone from 2 steps back
         const reviewIndex = Math.max(0, i - 3);
         if (reviewIndex !== i - 1) {
           dependencies.push({
@@ -417,7 +414,6 @@ Generate the optimal learning path now:`;
 
     console.log(`[Learning Path] Generated ${totalSRSCards} enhanced SRS flashcards`);
 
-    // Success response with comprehensive data
     return new Response(JSON.stringify({
       data: {
         project: projects[0],
@@ -450,7 +446,7 @@ Generate the optimal learning path now:`;
           'Review flashcards daily',
           'Track your progress'
         ],
-        milestones: insertedMilestones.slice(0, 3) // Preview first 3
+        milestones: insertedMilestones.slice(0, 3)
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
