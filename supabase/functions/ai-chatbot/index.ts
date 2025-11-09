@@ -28,8 +28,21 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Use environment variable for API key (security best practice)
-    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY') || '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'
+    // 🔐 SECURE: Use environment variable for API key
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
+    
+    if (!openrouterApiKey) {
+      console.error('OPENROUTER_API_KEY not configured')
+      return new Response(
+        JSON.stringify({ 
+          error: { 
+            message: 'API key not configured. Please set OPENROUTER_API_KEY in Supabase Edge Functions secrets.',
+            code: 'MISSING_API_KEY'
+          } 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Enhanced system prompt with neuroscience and Jim Kwik principles
     const systemPrompt = `You are an expert learning assistant for Learnty, specializing in neuroscience-based learning and Jim Kwik's memory techniques.
@@ -123,7 +136,7 @@ Remember: You're not just answering questions - you're training users to become 
         headers: {
           'Authorization': `Bearer ${openrouterApiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://z0cd8od18i80.space.minimax.io',
+          'HTTP-Referer': 'https://learnty.app',
           'X-Title': 'Learnty AI Learning Assistant'
         },
         body: JSON.stringify({
@@ -136,7 +149,7 @@ Remember: You're not just answering questions - you're training users to become 
             })),
             { role: 'user', content: message }
           ],
-          max_tokens: 800, // Increased for more comprehensive responses
+          max_tokens: 800,
           temperature: 0.7
         })
       }
@@ -146,7 +159,6 @@ Remember: You're not just answering questions - you're training users to become 
       const errorText = await openrouterResponse.text()
       console.error('OpenRouter API error:', errorText)
       
-      // Return a helpful fallback response
       return new Response(
         JSON.stringify({ 
           data: { 
