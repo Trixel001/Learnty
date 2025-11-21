@@ -24,7 +24,7 @@ const ReviewButton = () => {
     }, []);
 
     return (
-        <div className="fixed bottom-8 right-6 z-50 flex items-center justify-end pointer-events-auto">
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-6 z-50 flex items-center justify-end pointer-events-auto scale-90 md:scale-100 origin-bottom-right">
             <button
                 className="group flex items-center relative outline-none"
             >
@@ -56,8 +56,8 @@ const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick 
             onClick={onClick}
             className={`
                 relative
-                w-[80vw] max-w-[260px] h-[320px]
-                rounded-3xl p-6 flex flex-col justify-between
+                w-[260px] h-[280px] md:h-[320px]
+                rounded-3xl p-5 md:p-6 flex flex-col justify-between
                 transition-all duration-300 transform
                 border border-white/10 backdrop-blur-lg bg-slate-900/60
                 group cursor-pointer select-none

@@ -72,7 +72,7 @@ const MessageBubble = ({ text, sender }) => {
                 </div>
             )}
             <div className={`
-                relative max-w-[85%] md:max-w-[75%] px-5 py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border
+                relative max-w-[85%] md:max-w-[75%] px-4 py-3 md:px-5 md:py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border
                 ${isBot
                     ? 'bg-slate-900/80 border-slate-700 text-slate-200 rounded-tl-none'
                     : 'bg-[#0d9488]/90 border-[#2dd4bf]/30 text-white rounded-tr-none'
