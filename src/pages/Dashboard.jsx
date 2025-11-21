@@ -56,7 +56,7 @@ const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick 
             onClick={onClick}
             className={`
                 relative
-                w-[260px] h-[320px]
+                w-[80vw] max-w-[260px] h-[320px]
                 rounded-3xl p-6 flex flex-col justify-between
                 transition-all duration-300 transform
                 border border-white/10 backdrop-blur-lg bg-slate-900/60
@@ -110,7 +110,7 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
     const dragStartPos = useRef(0);
 
     const displayItems = [...items, ...items, ...items];
-    const itemWidth = 260 + 32;
+    const itemWidth = 292; // Approximate width + gap
     const totalSetWidth = items.length * itemWidth;
 
     useEffect(() => {
@@ -192,8 +192,8 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
                 ))}
             </div>
 
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0f172a] to-transparent pointer-events-none z-20"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0f172a] to-transparent pointer-events-none z-20"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-r from-[#0f172a] to-transparent pointer-events-none z-20"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-l from-[#0f172a] to-transparent pointer-events-none z-20"></div>
         </div>
     );
 };
@@ -257,7 +257,7 @@ const Dashboard = () => {
                         <div className="w-10 h-10 bg-[#0d9488] rounded-xl flex items-center justify-center shadow-[0_0_15px_#0d9488]">
                             <span className="font-bold text-white text-xl font-grotesk">L</span>
                         </div>
-                        <span className="font-bold text-xl tracking-wide text-white font-grotesk">Learnty</span>
+                        <span className="font-bold text-xl tracking-wide text-white font-grotesk hidden md:block">Learnty</span>
                     </div>
 
                     <button className="w-10 h-10 bg-slate-800/60 backdrop-blur rounded-full flex items-center justify-center border border-slate-600/50 hover:border-[#0d9488] transition-colors hover:bg-slate-700">

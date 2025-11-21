@@ -61,7 +61,7 @@ const hitTest = (x, y, elements, currentSelectedId) => {
 // --- SUB-COMPONENTS ---
 const HistoryModal = ({ history, currentIndex, onClose, onRestore }) => (
     <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-        <div className="w-full max-w-md bg-slate-900 border-t md:border border-white/10 md:rounded-2xl p-6 shadow-2xl animate-[slide-up_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+        <div className="w-full max-w-md bg-slate-900 border-t md:border border-white/10 md:rounded-2xl p-6 shadow-2xl animate-[slideInUp_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold font-grotesk text-white">Time Machine</h3>
                 <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><X className="w-5 h-5"/></button>
@@ -382,7 +382,7 @@ const Notes = () => {
                 {/* SELECTION MENU */}
                 {selectionBounds && !isDrawingMode && !aiFeature && (
                     <div
-                        className="fixed z-[9999] flex items-center gap-1 bg-slate-800 p-1.5 rounded-lg shadow-2xl border border-slate-600"
+                        className="fixed z-[9999] flex items-center gap-1 bg-slate-800 p-1.5 rounded-lg shadow-2xl border border-slate-600 animate-[fadeUp_0.15s]"
                         style={{top: selectionBounds.top, left: selectionBounds.left, transform: 'translateX(-50%)'}}
                         onMouseDown={e => e.preventDefault()}
                     >
@@ -418,7 +418,7 @@ const Notes = () => {
                         <div className="w-8 h-px bg-white/10"></div>
 
                         {isDrawingMode ? (
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 animate-[pop_0.2s]">
                                 {[{id:'select', i: MousePointer}, {id:'pen', i: PenTool}, {id:'rect', i: Square}, {id:'circle', i: Circle}].map(t => (
                                     <button key={t.id} onClick={()=>{setTool(t.id); setSelectedElement(null);}} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${tool===t.id ? 'text-[#0d9488] bg-[#0d9488]/20 border border-[#0d9488]' : 'text-slate-400 hover:bg-slate-800'}`}>
                                         <t.i className="w-5 h-5"/>
@@ -429,11 +429,11 @@ const Notes = () => {
                                     <button onClick={() => {
                                         setNoteElements(prev => prev.filter(e => e.id !== selectedElement.id));
                                         setSelectedElement(null);
-                                    }} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Trash className="w-5 h-5"/></button>
+                                    }} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all animate-[pop_0.2s]"><Trash className="w-5 h-5"/></button>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 animate-[pop_0.2s]">
                                 <button onClick={() => execCmd('bold')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><Bold className="w-5 h-5"/></button>
                                 <button onClick={() => execCmd('italic')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><Italic className="w-5 h-5"/></button>
                                 <button onClick={() => execCmd('insertUnorderedList')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><List className="w-5 h-5"/></button>

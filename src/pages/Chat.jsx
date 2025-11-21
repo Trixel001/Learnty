@@ -25,7 +25,7 @@ const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
             ></div>
 
             {/* Drawer */}
-            <div className="relative w-[75%] max-w-sm h-full bg-slate-900/95 border-l border-white/10 shadow-2xl sidebar-enter flex flex-col animate-[slideInRight_0.3s_ease-out]">
+            <div className="relative w-[85%] md:w-[75%] max-w-sm h-full bg-slate-900/95 border-l border-white/10 shadow-2xl sidebar-enter flex flex-col animate-[slideInRight_0.3s_ease-out]">
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <h2 className="text-xl font-bold font-grotesk text-white">History</h2>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:text-white">
@@ -72,7 +72,7 @@ const MessageBubble = ({ text, sender }) => {
                 </div>
             )}
             <div className={`
-                relative max-w-[75%] px-5 py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border
+                relative max-w-[85%] md:max-w-[75%] px-5 py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border
                 ${isBot
                     ? 'bg-slate-900/80 border-slate-700 text-slate-200 rounded-tl-none'
                     : 'bg-[#0d9488]/90 border-[#2dd4bf]/30 text-white rounded-tr-none'
@@ -165,25 +165,25 @@ const Chat = () => {
                 />
 
                 {/* --- HEADER (FLOATING) --- */}
-                <header className="absolute top-0 left-0 w-full h-28 z-30 pointer-events-none flex items-start justify-between px-6 py-6 bg-gradient-to-b from-[#0f172a]/90 to-transparent">
+                <header className="absolute top-0 left-0 w-full h-20 md:h-28 z-30 pointer-events-none flex items-center md:items-start justify-between px-4 md:px-6 py-4 md:py-6 bg-gradient-to-b from-[#0f172a]/90 to-transparent">
 
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="pointer-events-auto p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
+                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
                     >
-                        <ArrowLeft className="w-6 h-6" />
+                        <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
 
-                    <div className="pointer-events-auto flex flex-col items-center mt-2 cursor-pointer group" onClick={startNewChat}>
+                    <div className="pointer-events-auto flex flex-col items-center mt-0 md:mt-2 cursor-pointer group" onClick={startNewChat}>
                         <div className="relative">
                             <div className="absolute inset-0 bg-[#0d9488] blur-xl opacity-30 rounded-full animate-glow-red group-hover:opacity-60 transition-opacity"></div>
-                            <Brain className="w-10 h-10 text-[#2dd4bf] relative z-10 drop-shadow-[0_0_10px_rgba(45,212,191,0.8)] transition-transform group-hover:rotate-12 group-active:scale-90" />
+                            <Brain className="w-8 h-8 md:w-10 md:h-10 text-[#2dd4bf] relative z-10 drop-shadow-[0_0_10px_rgba(45,212,191,0.8)] transition-transform group-hover:rotate-12 group-active:scale-90" />
                         </div>
 
-                        <div className="relative h-4 w-24 mt-2 text-center overflow-hidden">
+                        <div className="relative h-4 w-24 mt-1 md:mt-2 text-center overflow-hidden">
                             <span
                                 key={headerText}
-                                className="absolute inset-0 flex items-center justify-center text-[10px] font-grotesk tracking-[0.2em] text-[#2dd4bf] uppercase opacity-90 animate-[pulse_4s_infinite]"
+                                className="absolute inset-0 flex items-center justify-center text-[9px] md:text-[10px] font-grotesk tracking-[0.2em] text-[#2dd4bf] uppercase opacity-90 animate-[pulse_4s_infinite]"
                             >
                                 {headerText}
                             </span>
@@ -192,14 +192,14 @@ const Chat = () => {
 
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="pointer-events-auto p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
+                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
                     >
-                        <Clock className="w-6 h-6" />
+                        <Clock className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 </header>
 
                 {/* --- CHAT AREA --- */}
-                <main className="flex-1 overflow-y-auto p-6 pt-32 pb-4 relative z-10 custom-scrollbar">
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 pt-24 md:pt-32 pb-4 relative z-10 custom-scrollbar">
                     <div className="max-w-3xl mx-auto flex flex-col justify-end min-h-full">
                         {chatMessages.map(msg => (
                             <MessageBubble key={msg.id} text={msg.text} sender={msg.sender} />
@@ -210,13 +210,13 @@ const Chat = () => {
                 </main>
 
                 {/* --- FOOTER --- */}
-                <footer className="flex-shrink-0 p-4 md:p-6 relative z-20 bg-slate-900/60 backdrop-blur-xl border-t border-white/5">
-                    <form onSubmit={handleSend} className="max-w-3xl mx-auto relative flex items-end gap-3">
+                <footer className="flex-shrink-0 p-3 md:p-6 relative z-20 bg-slate-900/60 backdrop-blur-xl border-t border-white/5 pb-safe">
+                    <form onSubmit={handleSend} className="max-w-3xl mx-auto relative flex items-end gap-2 md:gap-3">
                         <button
                             type="button"
-                            className="flex-shrink-0 w-12 h-12 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-[#0d9488] hover:border-[#0d9488]/50 hover:bg-[#0d9488]/10 transition-all active:scale-95"
+                            className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-[#0d9488] hover:border-[#0d9488]/50 hover:bg-[#0d9488]/10 transition-all active:scale-95"
                         >
-                            <Mic className="w-6 h-6" />
+                            <Mic className="w-5 h-5 md:w-6 md:h-6" />
                         </button>
                         <div className="flex-1 relative">
                             <input
@@ -224,21 +224,21 @@ const Chat = () => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Ask Learnie anything..."
-                                className="w-full h-12 pl-5 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-[#0d9488] focus:ring-1 focus:ring-[#0d9488] transition-all shadow-inner"
+                                className="w-full h-10 md:h-12 pl-4 md:pl-5 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 text-sm md:text-base focus:outline-none focus:border-[#0d9488] focus:ring-1 focus:ring-[#0d9488] transition-all shadow-inner"
                             />
                         </div>
                         <button
                             type="submit"
                             disabled={!input.trim()}
                             className={`
-                                flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95
+                                flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95
                                 ${input.trim()
                                     ? 'bg-[#0d9488] hover:bg-[#0f766e] shadow-[0_0_15px_#0d9488]'
                                     : 'bg-slate-800 border border-slate-700 text-slate-600 cursor-not-allowed'
                                 }
                             `}
                         >
-                            <Send className={`w-5 h-5 ${input.trim() ? 'translate-x-0.5 translate-y-0.5' : ''}`} />
+                            <Send className={`w-4 h-4 md:w-5 md:h-5 ${input.trim() ? 'translate-x-0.5 translate-y-0.5' : ''}`} />
                         </button>
                     </form>
                 </footer>
