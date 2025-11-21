@@ -24,9 +24,9 @@ const ReviewButton = () => {
     }, []);
 
     return (
-        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-6 z-50 flex items-center justify-end pointer-events-auto scale-90 md:scale-100 origin-bottom-right">
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-6 z-50 flex items-center justify-end pointer-events-auto pb-safe pr-safe">
             <button
-                className="group flex items-center relative outline-none"
+                className="group flex items-center relative outline-none active:scale-95 transition-transform"
             >
                 <div
                     className={`
@@ -41,8 +41,8 @@ const ReviewButton = () => {
                      </div>
                 </div>
 
-                <div className="w-14 h-14 bg-[#0d9488] hover:bg-[#0f766e] rounded-full flex items-center justify-center shadow-[0_0_20px_#0d9488] transition-transform group-hover:scale-110 group-active:scale-90 z-10">
-                    <Star className="w-6 h-6 text-white group-hover:rotate-[72deg] transition-transform duration-500" />
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-[#0d9488] hover:bg-[#0f766e] rounded-full flex items-center justify-center shadow-[0_0_20px_#0d9488] transition-transform group-hover:scale-110 z-10 cursor-pointer">
+                    <Star className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:rotate-[72deg] transition-transform duration-500" />
                 </div>
             </button>
         </div>
@@ -50,18 +50,20 @@ const ReviewButton = () => {
 };
 
 // --- FEATURE CARD ---
-const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick }) => {
+const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick, style }) => {
     return (
         <div
             onClick={onClick}
+            style={style}
             className={`
                 relative
-                w-[260px] h-[280px] md:h-[320px]
-                rounded-3xl p-5 md:p-6 flex flex-col justify-between
+                w-[85vw] md:w-[280px] h-[320px]
+                rounded-3xl p-6 flex flex-col justify-between
                 transition-all duration-300 transform
                 border border-white/10 backdrop-blur-lg bg-slate-900/60
                 group cursor-pointer select-none
                 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]
+                active:scale-[0.98]
                 ${isLocked ? 'grayscale opacity-60 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-slate-800/80 hover:border-white/20'}
             `}
         >
@@ -102,6 +104,7 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
     const containerRef = useRef(null);
     const [offset, setOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [itemWidth, setItemWidth] = useState(292); // Default fallback
 
     // Using refs for animation loop values to avoid re-renders
     const offsetRef = useRef(0);
@@ -110,7 +113,26 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
     const dragStartPos = useRef(0);
 
     const displayItems = [...items, ...items, ...items];
-    const itemWidth = 292; // Approximate width + gap
+    const GAP = 32;
+
+    // Dynamic Width Calculation
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (window.innerWidth < 768) {
+                // Mobile: 85vw + gap
+                const width = window.innerWidth * 0.85;
+                setItemWidth(width + GAP);
+            } else {
+                // Desktop: Fixed 280px + gap
+                setItemWidth(280 + GAP);
+            }
+        };
+
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+        return () => window.removeEventListener('resize', updateDimensions);
+    }, []);
+
     const totalSetWidth = items.length * itemWidth;
 
     useEffect(() => {
@@ -119,6 +141,8 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
         const loop = () => {
             if (!isDragging) {
                 let next = offsetRef.current + velocity.current;
+
+                // Infinite loop logic using dynamic totalSetWidth
                 if (next <= -totalSetWidth) next += totalSetWidth;
                 if (next > 0) next -= totalSetWidth;
 
@@ -129,7 +153,7 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
         };
         loop();
         return () => cancelAnimationFrame(animationFrameId);
-    }, [isDragging, totalSetWidth]);
+    }, [isDragging, totalSetWidth]); // Re-run loop logic when dimensions change
 
     const handleStart = (clientX) => {
         setIsDragging(true);
@@ -179,8 +203,12 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
         >
             <div
                 ref={containerRef}
-                className="flex gap-8 pl-8 pointer-events-none"
-                style={{ transform: `translateX(${offset}px)`, willChange: 'transform' }}
+                className="flex pl-8 pointer-events-none"
+                style={{
+                    gap: `${GAP}px`,
+                    transform: `translateX(${offset}px)`,
+                    willChange: 'transform'
+                }}
             >
                 {displayItems.map((feature, index) => (
                     <div key={`${feature.id}-${index}`} className="shrink-0 pointer-events-auto">
@@ -252,7 +280,7 @@ const Dashboard = () => {
             <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden select-none">
                 <GalaxyBackground />
 
-                <header className="w-full p-6 md:p-8 flex justify-between items-center z-30">
+                <header className="w-full p-6 md:p-8 pt-safe flex justify-between items-center z-30">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#0d9488] rounded-xl flex items-center justify-center shadow-[0_0_15px_#0d9488]">
                             <span className="font-bold text-white text-xl font-grotesk">L</span>
@@ -260,7 +288,7 @@ const Dashboard = () => {
                         <span className="font-bold text-xl tracking-wide text-white font-grotesk hidden md:block">Learnty</span>
                     </div>
 
-                    <button className="w-10 h-10 bg-slate-800/60 backdrop-blur rounded-full flex items-center justify-center border border-slate-600/50 hover:border-[#0d9488] transition-colors hover:bg-slate-700">
+                    <button className="w-11 h-11 bg-slate-800/60 backdrop-blur rounded-full flex items-center justify-center border border-slate-600/50 hover:border-[#0d9488] transition-colors hover:bg-slate-700 cursor-pointer active:scale-95">
                         <User className="w-5 h-5 text-slate-300" />
                     </button>
                 </header>

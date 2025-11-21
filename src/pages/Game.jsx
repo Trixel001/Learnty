@@ -62,10 +62,10 @@ const stepsData = [
 
 // --- SUB-COMPONENTS ---
 const Header = ({ current, total, xp, streak, onClose }) => (
-    <header className="fixed top-0 left-0 w-full px-6 py-4 z-40 flex flex-col gap-4 bg-gradient-to-b from-[#0f172a] to-transparent">
-        <div className="flex items-center justify-between">
-            <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-800/50 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all">
-                <X className="w-5 h-5" />
+    <header className="fixed top-0 left-0 w-full px-6 pt-safe pb-4 z-40 flex flex-col gap-4 bg-gradient-to-b from-[#0f172a] to-transparent">
+        <div className="flex items-center justify-between mt-2">
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-800/50 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-95">
+                <X className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-3">
                 <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 ${streak > 1 ? 'animate-pulse' : ''}`}>
@@ -127,7 +127,6 @@ const QuizStep = ({ data, onNext, savedState }) => {
 
     const handleLock = () => {
         if (selected === null) return;
-        // Skip reflection for simplicity in port, go straight to result
         const correct = selected === data.correctId;
         setIsCorrect(correct);
         setView('result');
@@ -138,14 +137,14 @@ const QuizStep = ({ data, onNext, savedState }) => {
     };
 
     return (
-        <div className={`w-full max-w-2xl flex flex-col items-center pb-24 md:pb-0 px-4 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
-            <div className="text-center mb-4 md:mb-6">
+        <div className={`w-full max-w-2xl flex flex-col items-center pb-32 md:pb-0 px-4 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
+            <div className="text-center mb-6 md:mb-8">
                 <span className={`inline-block px-3 py-1 rounded text-[10px] font-bold tracking-[0.2em] uppercase mb-3 border bg-[#0d9488]/20 text-[#2dd4bf] border-[#0d9488]/30`}>{data.type}</span>
-                <h2 className="text-lg md:text-3xl font-bold text-white leading-tight px-4">{data.question}</h2>
+                <h2 className="text-xl md:text-3xl font-bold text-white leading-tight px-2">{data.question}</h2>
             </div>
 
             <div className={`
-                w-full md:w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-4 md:p-8 mb-4 md:mb-6 relative overflow-hidden group font-mono text-sm md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto
+                w-full md:w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-5 md:p-8 mb-6 md:mb-8 relative overflow-hidden group font-mono text-base md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto custom-scrollbar
                 ${isReadOnly && !isCorrect ? 'border-red-500/30' : ''}
                 ${isReadOnly && isCorrect ? 'border-green-500/30' : ''}
             `}>
@@ -167,21 +166,21 @@ const QuizStep = ({ data, onNext, savedState }) => {
                         ))}
                     </div>
                 ) : (
-                    <div className="whitespace-pre-wrap text-center break-words min-w-min">
+                    <div className="whitespace-pre text-center min-w-max mx-auto">
                         {data.codeDisplay}
                     </div>
                 )}
             </div>
 
             {data.options && (
-                <div className="w-full md:w-[90%] grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
+                <div className="w-full md:w-[90%] grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                     {data.options.map((opt, idx) => (
                         <button
                             key={idx}
                             onClick={() => handleOptionClick(idx)}
                             disabled={view !== 'question' || isReadOnly}
                             className={`
-                                p-3 md:p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative
+                                p-4 rounded-xl border font-bold transition-all text-base md:text-lg relative active:scale-[0.98]
                                 ${view === 'question' && selected === idx ? 'bg-white/10 border-white text-white scale-[1.02]' : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-800/80'}
                                 ${(view === 'result' || isReadOnly) && idx === data.correctId ? '!bg-green-500/20 !border-green-500 !text-green-400' : ''}
                                 ${(view === 'result' || isReadOnly) && !isCorrect && selected === idx ? '!bg-red-500/20 !border-red-500 !text-red-400 opacity-60' : ''}
@@ -193,25 +192,26 @@ const QuizStep = ({ data, onNext, savedState }) => {
                 </div>
             )}
 
-            <div className="w-full p-4 flex justify-center">
-                 <div className="w-full max-w-md">
-                    {view === 'question' && !isReadOnly && (
+            {/* Sticky Bottom Button for Mobile */}
+            {view === 'question' && !isReadOnly && (
+                <div className="fixed bottom-0 left-0 w-full p-4 pb-safe bg-gradient-to-t from-[#0f172a] to-transparent z-50 md:static md:bg-none md:p-0 md:mt-4 md:w-auto">
+                     <div className="w-full max-w-md mx-auto">
                         <button
                             onClick={handleLock}
                             disabled={selected === null}
                             className={`
-                                w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all
+                                w-full py-4 rounded-xl font-bold text-lg text-white shadow-lg transition-all active:scale-95
                                 ${selected !== null
-                                    ? 'bg-[#0d9488] hover:bg-[#0f766e] transform active:scale-95'
+                                    ? 'bg-[#0d9488] hover:bg-[#0f766e] shadow-[0_0_20px_#0d9488]'
                                     : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                                 }
                             `}
                         >
                             Lock Answer
                         </button>
-                    )}
-                 </div>
-            </div>
+                     </div>
+                </div>
+            )}
 
             {view === 'result' && !isReadOnly && (
                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-[pop_0.3s_ease-out]">
@@ -348,7 +348,7 @@ const Game = () => {
                     />
                 )}
 
-                <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full overflow-y-auto md:overflow-hidden pt-20 md:pt-0">
+                <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full overflow-y-auto overflow-x-hidden pt-24 md:pt-0">
                     {stage === 'intro' && <BreathIntro onComplete={handleIntroComplete} />}
 
                     {stage === 'game' && (

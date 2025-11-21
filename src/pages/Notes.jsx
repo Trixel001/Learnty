@@ -24,8 +24,6 @@ const isPointNearLine = (x, y, p1, p2, maxDist = 10) => {
 
 const hitTest = (x, y, elements, currentSelectedId) => {
     const handleSize = 20;
-
-    // 1. Check Selection Handles
     if (currentSelectedId) {
         const el = elements.find(e => e.id === currentSelectedId);
         if (el && el.type !== 'pen') {
@@ -36,8 +34,6 @@ const hitTest = (x, y, elements, currentSelectedId) => {
             }
         }
     }
-
-    // 2. Check Bodies
     for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
         if (el.type === 'rect') {
@@ -60,11 +56,11 @@ const hitTest = (x, y, elements, currentSelectedId) => {
 
 // --- SUB-COMPONENTS ---
 const HistoryModal = ({ history, currentIndex, onClose, onRestore }) => (
-    <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm pb-safe" onClick={onClose}>
         <div className="w-full max-w-md bg-slate-900 border-t md:border border-white/10 md:rounded-2xl p-6 shadow-2xl animate-[slideInUp_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold font-grotesk text-white">Time Machine</h3>
-                <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><X className="w-5 h-5"/></button>
+                <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><X className="w-6 h-6"/></button>
             </div>
             <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
                 {history.map((state, idx) => (
@@ -103,15 +99,15 @@ const AIReviewModal = ({ type, originalText, onClose, onCommit }) => {
             <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-[pop_0.2s]" onClick={e => e.stopPropagation()}>
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
                     <div className="flex items-center gap-2 text-[#0d9488] font-bold"><Brain className="w-5 h-5" /> <span>AI Processor</span></div>
-                    <button onClick={onClose}><X className="w-5 h-5 text-slate-500"/></button>
+                    <button onClick={onClose}><X className="w-6 h-6 text-slate-500"/></button>
                 </div>
                 <div className="p-6">
                     {loading ? <div className="text-center py-8 text-[#0d9488]"><div className="animate-spin w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full mx-auto"></div></div> :
                     <div className="bg-slate-950 p-4 rounded border border-slate-800 text-slate-300 text-sm">{result}</div>}
                 </div>
                 <div className="flex p-4 gap-2 bg-slate-800/50">
-                    <button onClick={() => onCommit(result, 'replace')} className="flex-1 py-2 rounded bg-slate-700 text-white hover:bg-slate-600">Replace</button>
-                    <button onClick={() => onCommit(result, 'insert')} className="flex-1 py-2 rounded bg-[#0d9488] text-white hover:bg-[#0f766e]">Insert</button>
+                    <button onClick={() => onCommit(result, 'replace')} className="flex-1 py-3 rounded-xl bg-slate-700 text-white hover:bg-slate-600 font-bold">Replace</button>
+                    <button onClick={() => onCommit(result, 'insert')} className="flex-1 py-3 rounded-xl bg-[#0d9488] text-white hover:bg-[#0f766e] font-bold">Insert</button>
                 </div>
             </div>
         </div>
@@ -132,7 +128,6 @@ const Notes = () => {
     const [selectedElement, setSelectedElement] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
     const [historyIndex, setHistoryIndex] = useState(-1);
-
     const [selectionBounds, setSelectionBounds] = useState(null);
     const [selectedText, setSelectedText] = useState("");
     const [aiFeature, setAiFeature] = useState(null);
@@ -164,7 +159,6 @@ const Notes = () => {
         const newHistory = noteHistory.slice(0, historyIndex + 1);
         newHistory.push(state);
         if(newHistory.length > 20) newHistory.shift();
-
         setNoteHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
     };
@@ -179,68 +173,82 @@ const Notes = () => {
         setShowHistory(false);
     };
 
-    // Vector Renderer
+    // Vector Renderer & Resize Handler
     useLayoutEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
 
-        if (canvas.width !== canvas.offsetWidth * dpr) {
-            canvas.width = canvas.offsetWidth * dpr;
-            canvas.height = 4000 * dpr;
-            ctx.scale(dpr, dpr);
-        }
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+            noteElements.forEach(el => {
+                const isSelected = selectedElement?.id === el.id;
+                ctx.strokeStyle = isSelected ? '#2dd4bf' : el.color;
+                ctx.lineWidth = isSelected ? 3 : 2;
 
-        noteElements.forEach(el => {
-            const isSelected = selectedElement?.id === el.id;
-            ctx.strokeStyle = isSelected ? '#2dd4bf' : el.color;
-            ctx.lineWidth = isSelected ? 3 : 2;
-
-            ctx.beginPath();
-            if (el.type === 'pen') {
-                if(el.points.length > 1) {
-                    ctx.moveTo(el.points[0].x, el.points[0].y);
-                    for(let i=1; i<el.points.length; i++) ctx.lineTo(el.points[i].x, el.points[i].y);
+                ctx.beginPath();
+                if (el.type === 'pen') {
+                    if(el.points.length > 1) {
+                        ctx.moveTo(el.points[0].x, el.points[0].y);
+                        for(let i=1; i<el.points.length; i++) ctx.lineTo(el.points[i].x, el.points[i].y);
+                    }
+                } else if (el.type === 'rect') {
+                    ctx.rect(el.x, el.y, el.width, el.height);
+                } else if (el.type === 'circle') {
+                    const rx = Math.abs(el.width)/2;
+                    const ry = Math.abs(el.height)/2;
+                    const cx = el.x + el.width/2;
+                    const cy = el.y + el.height/2;
+                    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                 }
-            } else if (el.type === 'rect') {
-                ctx.rect(el.x, el.y, el.width, el.height);
-            } else if (el.type === 'circle') {
-                const rx = Math.abs(el.width)/2;
-                const ry = Math.abs(el.height)/2;
-                const cx = el.x + el.width/2;
-                const cy = el.y + el.height/2;
-                ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
-            }
-            ctx.stroke();
+                ctx.stroke();
 
-            if (isSelected && el.type !== 'pen') {
-                ctx.save();
-                ctx.setLineDash([5, 5]);
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+                if (isSelected && el.type !== 'pen') {
+                    ctx.save();
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(el.x + el.width - 5, el.y + el.height - 5, 10, 10);
+                    ctx.restore();
+                }
+            });
+        };
 
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(el.x + el.width - 5, el.y + el.height - 5, 10, 10);
-                ctx.restore();
-            }
-        });
+        // Resize Logic
+        const handleResize = () => {
+             const dpr = window.devicePixelRatio || 1;
+             // Save current content if needed (though we redraw from state)
+             canvas.width = canvas.offsetWidth * dpr;
+             canvas.height = 4000 * dpr;
+             ctx.scale(dpr, dpr);
+             draw();
+        };
+
+        // Initial setup
+        handleResize();
+        window.addEventListener('resize', handleResize);
+
+        // Redraw when elements change
+        draw();
+
+        return () => window.removeEventListener('resize', handleResize);
     }, [noteElements, selectedElement]);
 
-    // Canvas Interactions
+    // Canvas Interactions (Touch/Mouse)
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const handleStart = (e) => {
             if (!isDrawingMode) return;
-            if (e.cancelable) e.preventDefault();
+            // Prevent scrolling when drawing
+            if (e.target === canvas) e.preventDefault();
 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -314,6 +322,7 @@ const Notes = () => {
             }
         };
 
+        // Use passive: false to allow preventDefault
         canvas.addEventListener('touchstart', handleStart, { passive: false });
         canvas.addEventListener('touchmove', handleMove, { passive: false });
         canvas.addEventListener('touchend', handleEnd);
@@ -386,64 +395,68 @@ const Notes = () => {
                         style={{top: selectionBounds.top, left: selectionBounds.left, transform: 'translateX(-50%)'}}
                         onMouseDown={e => e.preventDefault()}
                     >
-                        <button onClick={() => navigator.clipboard.writeText(selectedText)} className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded">Copy</button>
+                        <button onClick={() => navigator.clipboard.writeText(selectedText)} className="px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded min-w-[44px]">Copy</button>
                         <div className="w-px h-4 bg-slate-600"></div>
-                        <button onClick={() => setAiFeature('Fix Grammar')} className="px-3 py-1.5 text-xs font-bold text-[#2dd4bf] hover:bg-slate-700 rounded flex items-center gap-1"><Brain className="w-3 h-3"/> Fix</button>
-                        <button onClick={() => setAiFeature('Summarize')} className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded">Summarize</button>
+                        <button onClick={() => setAiFeature('Fix Grammar')} className="px-3 py-2 text-xs font-bold text-[#2dd4bf] hover:bg-slate-700 rounded flex items-center gap-1 min-w-[44px]"><Brain className="w-3 h-3"/> Fix</button>
+                        <button onClick={() => setAiFeature('Summarize')} className="px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded min-w-[44px]">Summarize</button>
                     </div>
                 )}
 
                 {/* HEADER */}
-                <header className="h-16 flex items-center justify-between px-4 bg-slate-900/80 backdrop-blur border-b border-white/10 z-30">
+                <header className="shrink-0 h-16 pt-safe flex items-center justify-between px-4 bg-slate-900/80 backdrop-blur border-b border-white/10 z-30">
                     <div className="flex items-center gap-3">
-                         <button onClick={() => navigate('/dashboard')} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+                         <button onClick={() => navigate('/dashboard')} className="p-3 rounded-full hover:bg-white/10 transition-colors active:scale-95">
                             <ArrowLeft className="w-6 h-6 text-slate-300" />
                         </button>
                         <h1 className="font-grotesk font-bold text-lg hidden md:block">Learnty Ultimate</h1>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all"><History className="w-5 h-5"/></button>
-                        <button onClick={() => saveState('Manual')} className="px-5 py-2 rounded-full bg-[#0d9488] hover:bg-[#0f766e] text-white font-bold text-sm shadow-lg flex items-center gap-2"><Save className="w-4 h-4"/> Save</button>
+                        <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all active:scale-95"><History className="w-5 h-5"/></button>
+                        <button onClick={() => saveState('Manual')} className="px-5 py-2 rounded-full bg-[#0d9488] hover:bg-[#0f766e] text-white font-bold text-sm shadow-lg flex items-center gap-2 active:scale-95"><Save className="w-4 h-4"/> Save</button>
                     </div>
                 </header>
 
-                <main className="flex-1 relative flex overflow-hidden z-20">
-                    {/* SIDEBAR */}
-                    <aside className="w-14 md:w-20 bg-slate-950/50 border-r border-white/5 flex flex-col items-center py-4 gap-4 backdrop-blur-sm">
-                        <div className="bg-slate-900 p-1 rounded-xl border border-white/10 flex flex-col gap-1">
-                            <button onClick={() => setIsDrawingMode(false)} className={`p-2 md:p-3 rounded-lg transition-all ${!isDrawingMode ? 'bg-slate-700 text-white' : 'text-slate-500'}`}><Keyboard className="w-5 h-5"/></button>
-                            <button onClick={() => setIsDrawingMode(true)} className={`p-2 md:p-3 rounded-lg transition-all ${isDrawingMode ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><PenTool className="w-5 h-5"/></button>
+                <div className="flex-1 relative flex flex-col md:flex-row overflow-hidden z-20">
+                    {/* SIDEBAR (Responsive: Bottom on Mobile, Left on Desktop) */}
+                    <aside className={`
+                        bg-slate-950/50 backdrop-blur-sm border-white/5 flex items-center gap-4 z-40
+                        fixed bottom-0 left-0 w-full h-16 border-t pb-safe px-4 justify-center
+                        md:static md:w-20 md:h-full md:border-r md:border-t-0 md:flex-col md:py-4 md:justify-start md:pb-0
+                    `}>
+                        <div className="bg-slate-900 p-1 rounded-xl border border-white/10 flex md:flex-col gap-1">
+                            <button onClick={() => setIsDrawingMode(false)} className={`p-3 rounded-lg transition-all active:scale-95 ${!isDrawingMode ? 'bg-slate-700 text-white' : 'text-slate-500'}`}><Keyboard className="w-6 h-6 md:w-5 md:h-5"/></button>
+                            <button onClick={() => setIsDrawingMode(true)} className={`p-3 rounded-lg transition-all active:scale-95 ${isDrawingMode ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><PenTool className="w-6 h-6 md:w-5 md:h-5"/></button>
                         </div>
 
-                        <div className="w-8 h-px bg-white/10"></div>
+                        <div className="h-8 w-px bg-white/10 md:w-8 md:h-px"></div>
 
                         {isDrawingMode ? (
-                            <div className="flex flex-col gap-2 animate-[pop_0.2s]">
+                            <div className="flex md:flex-col gap-2 animate-[pop_0.2s]">
                                 {[{id:'select', i: MousePointer}, {id:'pen', i: PenTool}, {id:'rect', i: Square}, {id:'circle', i: Circle}].map(t => (
-                                    <button key={t.id} onClick={()=>{setTool(t.id); setSelectedElement(null);}} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${tool===t.id ? 'text-[#0d9488] bg-[#0d9488]/20 border border-[#0d9488]' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={t.id} onClick={()=>{setTool(t.id); setSelectedElement(null);}} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors active:scale-95 ${tool===t.id ? 'text-[#0d9488] bg-[#0d9488]/20 border border-[#0d9488]' : 'text-slate-400 hover:bg-slate-800'}`}>
                                         <t.i className="w-5 h-5"/>
                                     </button>
                                 ))}
-                                <div className="h-4"></div>
+                                <div className="w-4 md:h-4"></div>
                                 {selectedElement && (
                                     <button onClick={() => {
                                         setNoteElements(prev => prev.filter(e => e.id !== selectedElement.id));
                                         setSelectedElement(null);
-                                    }} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all animate-[pop_0.2s]"><Trash className="w-5 h-5"/></button>
+                                    }} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all animate-[pop_0.2s] active:scale-95"><Trash className="w-5 h-5"/></button>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2 animate-[pop_0.2s]">
-                                <button onClick={() => execCmd('bold')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><Bold className="w-5 h-5"/></button>
-                                <button onClick={() => execCmd('italic')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><Italic className="w-5 h-5"/></button>
-                                <button onClick={() => execCmd('insertUnorderedList')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><List className="w-5 h-5"/></button>
-                                <button onClick={() => execCmd('formatBlock', 'H2')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold">H2</button>
+                            <div className="flex md:flex-col gap-2 animate-[pop_0.2s]">
+                                <button onClick={() => execCmd('bold')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white active:scale-95"><Bold className="w-5 h-5"/></button>
+                                <button onClick={() => execCmd('italic')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white active:scale-95"><Italic className="w-5 h-5"/></button>
+                                <button onClick={() => execCmd('insertUnorderedList')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white active:scale-95"><List className="w-5 h-5"/></button>
+                                <button onClick={() => execCmd('formatBlock', 'H2')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold active:scale-95">H2</button>
                             </div>
                         )}
                     </aside>
 
                     {/* EDITOR */}
-                    <div className="flex-1 relative overflow-y-auto custom-scrollbar">
+                    <div className="flex-1 relative overflow-y-auto custom-scrollbar pb-20 md:pb-0">
                         <div className="min-h-full max-w-4xl mx-auto relative p-4 md:p-12">
                             <div className="relative bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-2xl min-h-[80vh]">
                                 <canvas ref={canvasRef} className={`absolute inset-0 rounded-3xl w-full h-full z-20 ${isDrawingMode ? 'pointer-events-auto' : 'pointer-events-none'}`} />
@@ -458,13 +471,13 @@ const Notes = () => {
                             </div>
                         </div>
                     </div>
-                </main>
+                </div>
 
                 {/* AI FAB */}
-                <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 flex flex-col-reverse items-end gap-4 z-50">
+                <div className="absolute bottom-20 right-4 md:bottom-8 md:right-8 flex flex-col-reverse items-end gap-4 z-50 pointer-events-auto">
                     <button
                         onClick={() => setAiMenuOpen(!aiMenuOpen)}
-                        className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(13,148,136,0.5)] transition-all duration-300 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-12' : 'bg-[#0d9488] text-white hover:scale-110'}`}
+                        className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(13,148,136,0.5)] transition-all duration-300 active:scale-90 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-12' : 'bg-[#0d9488] text-white hover:scale-110'}`}
                     >
                         {aiMenuOpen ? <X className="w-6 h-6"/> : <Brain className="w-6 h-6 md:w-8 md:h-8" />}
                     </button>
@@ -475,7 +488,7 @@ const Notes = () => {
                                 <button
                                     key={f}
                                     onClick={() => {setAiFeature(f); setAiMenuOpen(false);}}
-                                    className="bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-xl shadow-xl hover:bg-[#0d9488] hover:border-[#0d9488] transition-all text-sm font-medium flex items-center justify-between min-w-[160px] group"
+                                    className="bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-xl shadow-xl hover:bg-[#0d9488] hover:border-[#0d9488] transition-all text-sm font-medium flex items-center justify-between min-w-[160px] group active:scale-95"
                                 >
                                     {f}
                                     <ChevronLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"/>
