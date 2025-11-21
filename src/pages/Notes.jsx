@@ -409,10 +409,10 @@ const Notes = () => {
 
                 <main className="flex-1 relative flex overflow-hidden z-20">
                     {/* SIDEBAR */}
-                    <aside className="w-16 md:w-20 bg-slate-950/50 border-r border-white/5 flex flex-col items-center py-4 gap-4 backdrop-blur-sm">
+                    <aside className="w-14 md:w-20 bg-slate-950/50 border-r border-white/5 flex flex-col items-center py-4 gap-4 backdrop-blur-sm">
                         <div className="bg-slate-900 p-1 rounded-xl border border-white/10 flex flex-col gap-1">
-                            <button onClick={() => setIsDrawingMode(false)} className={`p-3 rounded-lg transition-all ${!isDrawingMode ? 'bg-slate-700 text-white' : 'text-slate-500'}`}><Keyboard className="w-5 h-5"/></button>
-                            <button onClick={() => setIsDrawingMode(true)} className={`p-3 rounded-lg transition-all ${isDrawingMode ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><PenTool className="w-5 h-5"/></button>
+                            <button onClick={() => setIsDrawingMode(false)} className={`p-2 md:p-3 rounded-lg transition-all ${!isDrawingMode ? 'bg-slate-700 text-white' : 'text-slate-500'}`}><Keyboard className="w-5 h-5"/></button>
+                            <button onClick={() => setIsDrawingMode(true)} className={`p-2 md:p-3 rounded-lg transition-all ${isDrawingMode ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><PenTool className="w-5 h-5"/></button>
                         </div>
 
                         <div className="w-8 h-px bg-white/10"></div>
@@ -444,12 +444,12 @@ const Notes = () => {
 
                     {/* EDITOR */}
                     <div className="flex-1 relative overflow-y-auto custom-scrollbar">
-                        <div className="min-h-full max-w-4xl mx-auto relative p-6 md:p-12">
+                        <div className="min-h-full max-w-4xl mx-auto relative p-4 md:p-12">
                             <div className="relative bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-2xl min-h-[80vh]">
                                 <canvas ref={canvasRef} className={`absolute inset-0 rounded-3xl w-full h-full z-20 ${isDrawingMode ? 'pointer-events-auto' : 'pointer-events-none'}`} />
                                 <div
                                     ref={editorRef}
-                                    className={`p-8 md:p-10 outline-none min-h-[60vh] relative z-10 text-slate-100 text-lg leading-relaxed ${isDrawingMode ? 'opacity-50 blur-[1px] select-none pointer-events-none' : 'select-text'}`}
+                                    className={`p-6 md:p-10 outline-none min-h-[60vh] relative z-10 text-slate-100 text-base md:text-lg leading-relaxed ${isDrawingMode ? 'opacity-50 blur-[1px] select-none pointer-events-none' : 'select-text'}`}
                                     contentEditable={!isDrawingMode}
                                     suppressContentEditableWarning={true}
                                     dangerouslySetInnerHTML={{__html: noteContent}}
@@ -461,12 +461,12 @@ const Notes = () => {
                 </main>
 
                 {/* AI FAB */}
-                <div className="absolute bottom-8 right-8 flex flex-col-reverse items-end gap-4 z-50">
+                <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 flex flex-col-reverse items-end gap-4 z-50">
                     <button
                         onClick={() => setAiMenuOpen(!aiMenuOpen)}
-                        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(13,148,136,0.5)] transition-all duration-300 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-12' : 'bg-[#0d9488] text-white hover:scale-110'}`}
+                        className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(13,148,136,0.5)] transition-all duration-300 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-12' : 'bg-[#0d9488] text-white hover:scale-110'}`}
                     >
-                        {aiMenuOpen ? <X className="w-6 h-6"/> : <Brain className="w-8 h-8" />}
+                        {aiMenuOpen ? <X className="w-6 h-6"/> : <Brain className="w-6 h-6 md:w-8 md:h-8" />}
                     </button>
 
                     {aiMenuOpen && (

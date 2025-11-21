@@ -17,34 +17,34 @@ const InputView = ({ onGenerate }) => {
     ];
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-4 relative z-10 animate-[fadeIn_0.5s]">
-            <div className="w-[90%] max-w-[600px] bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#0d9488]/10 rounded-full flex items-center justify-center mb-4 md:mb-6 animate-bounce">
-                    <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-[#2dd4bf] drop-shadow-[0_0_10px_rgba(45,212,191,0.8)]" />
+        <div className="w-full h-full flex flex-col items-center justify-center p-4 relative z-10 animate-[fadeIn_0.5s] overflow-y-auto">
+            <div className="w-full md:w-[90%] max-w-[600px] bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-5 md:p-10 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group my-auto">
+                <div className="w-12 h-12 md:w-20 md:h-20 bg-[#0d9488]/10 rounded-full flex items-center justify-center mb-4 md:mb-6 animate-bounce">
+                    <Sparkles className="w-6 h-6 md:w-10 md:h-10 text-[#2dd4bf] drop-shadow-[0_0_10px_rgba(45,212,191,0.8)]" />
                 </div>
 
-                <h1 className="text-2xl md:text-4xl font-bold font-grotesk mb-2 text-white">
+                <h1 className="text-xl md:text-4xl font-bold font-grotesk mb-2 text-white">
                     What do you want to <span className="text-[#2dd4bf]">master</span> today?
                 </h1>
-                <p className="text-slate-400 mb-6 md:mb-8 text-xs md:text-base max-w-[80%]">
+                <p className="text-slate-400 mb-4 md:mb-8 text-xs md:text-base max-w-[90%] md:max-w-[80%]">
                     Learnty transforms any topic into an active learning quest.
                 </p>
 
-                <div className="w-full relative mb-6 group-focus-within:scale-[1.02] transition-transform duration-300">
+                <div className="w-full relative mb-4 md:mb-6 group-focus-within:scale-[1.02] transition-transform duration-300">
                     <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                        <Search className="w-5 h-5 text-slate-500" />
+                        <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-500" />
                     </div>
                     <input
                         type="text"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         placeholder="e.g. Astrophysics..."
-                        className="w-full py-3 md:py-4 pl-12 pr-4 bg-slate-800/60 border border-slate-600 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/50 transition-all shadow-inner text-base md:text-lg"
+                        className="w-full py-3 md:py-4 pl-10 md:pl-12 pr-4 bg-slate-800/60 border border-slate-600 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/50 transition-all shadow-inner text-sm md:text-lg"
                     />
                 </div>
 
-                <div className="w-full mb-6">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block text-left ml-1">Select Quest Depth</label>
+                <div className="w-full mb-4 md:mb-6">
+                    <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 md:mb-3 block text-left ml-1">Select Quest Depth</label>
                     <div className="grid grid-cols-3 gap-2 md:gap-3 bg-slate-950/50 p-1.5 rounded-xl border border-white/5">
                         {depthOptions.map(opt => (
                             <button
@@ -82,7 +82,7 @@ const InputView = ({ onGenerate }) => {
                     Generate Learning Quest
                 </button>
 
-                <div className="mt-6 md:mt-8 flex flex-wrap justify-center gap-2">
+                <div className="mt-4 md:mt-8 flex flex-wrap justify-center gap-2">
                     {suggestions.map((s) => (
                         <button
                             key={s}
@@ -143,9 +143,9 @@ const GeneratingView = ({ topic, depth, onComplete }) => {
 
     return (
         <div className="w-full h-full flex flex-col items-center pt-8 md:pt-12 pb-6 px-4 relative z-10">
-            <div className="text-center mb-8 md:mb-10 relative">
+            <div className="text-center mb-6 md:mb-10 relative">
                 <h2
-                    className="text-xl md:text-2xl font-bold font-grotesk tracking-widest uppercase mb-2 glitch-text"
+                    className="text-lg md:text-2xl font-bold font-grotesk tracking-widest uppercase mb-2 glitch-text"
                     data-text={statusText}
                 >
                     {statusText}
@@ -164,30 +164,30 @@ const GeneratingView = ({ topic, depth, onComplete }) => {
                     const isBoss = step.type === 'boss';
 
                     return (
-                        <div key={step.id} className="relative flex items-start mb-6 md:mb-8 group animate-[pop_0.5s_cubic-bezier(0.17,0.67,0.83,0.67)]">
+                        <div key={step.id} className="relative flex items-start mb-4 md:mb-8 group animate-[pop_0.5s_cubic-bezier(0.17,0.67,0.83,0.67)]">
                             <div className="absolute left-[27px] -top-8 w-1 bg-[#0d9488] shadow-[0_0_10px_#0d9488] h-10 animate-pulse"></div>
 
                             <div className={`
-                                relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all duration-500 shrink-0
+                                relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all duration-500 shrink-0
                                 ${isBoss
                                     ? 'bg-red-900/80 border-red-500 text-red-200 scale-110'
                                     : 'bg-slate-900/90 border-[#0d9488] text-[#2dd4bf]'
                                 }
                                 ${isLast ? 'animate-glow-red' : ''}
                             `}>
-                                {isBoss ? <Sparkles className="w-8 h-8" /> : <Unlock className="w-6 h-6" />}
+                                {isBoss ? <Sparkles className="w-6 h-6 md:w-8 md:h-8" /> : <Unlock className="w-5 h-5 md:w-6 md:h-6" />}
                             </div>
 
-                            <div className="ml-4 md:ml-6 flex-1 bg-slate-900/60 backdrop-blur border border-white/10 p-3 md:p-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02]">
+                            <div className="ml-3 md:ml-6 flex-1 bg-slate-900/60 backdrop-blur border border-white/10 p-3 md:p-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02]">
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-[10px] font-bold tracking-wider uppercase ${isBoss ? 'text-red-400' : 'text-[#2dd4bf]'}`}>
+                                    <span className={`text-[9px] md:text-[10px] font-bold tracking-wider uppercase ${isBoss ? 'text-red-400' : 'text-[#2dd4bf]'}`}>
                                         {isBoss ? 'Final Stage' : `Level 0${step.id}`}
                                     </span>
                                     <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-slate-300">
                                         {isBoss ? '1000 XP' : '250 XP'}
                                     </span>
                                 </div>
-                                <h3 className="text-white font-bold text-base md:text-lg leading-tight">{step.title}</h3>
+                                <h3 className="text-white font-bold text-sm md:text-lg leading-tight">{step.title}</h3>
                             </div>
                         </div>
                     );

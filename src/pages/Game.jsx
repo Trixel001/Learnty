@@ -138,14 +138,14 @@ const QuizStep = ({ data, onNext, savedState }) => {
     };
 
     return (
-        <div className={`w-full max-w-2xl flex flex-col items-center pb-24 md:pb-0 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
+        <div className={`w-full max-w-2xl flex flex-col items-center pb-24 md:pb-0 px-4 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
             <div className="text-center mb-4 md:mb-6">
                 <span className={`inline-block px-3 py-1 rounded text-[10px] font-bold tracking-[0.2em] uppercase mb-3 border bg-[#0d9488]/20 text-[#2dd4bf] border-[#0d9488]/30`}>{data.type}</span>
-                <h2 className="text-xl md:text-3xl font-bold text-white leading-tight px-4">{data.question}</h2>
+                <h2 className="text-lg md:text-3xl font-bold text-white leading-tight px-4">{data.question}</h2>
             </div>
 
             <div className={`
-                w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden group font-mono text-base md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto
+                w-full md:w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-4 md:p-8 mb-4 md:mb-6 relative overflow-hidden group font-mono text-sm md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto
                 ${isReadOnly && !isCorrect ? 'border-red-500/30' : ''}
                 ${isReadOnly && isCorrect ? 'border-green-500/30' : ''}
             `}>
@@ -174,14 +174,14 @@ const QuizStep = ({ data, onNext, savedState }) => {
             </div>
 
             {data.options && (
-                <div className="w-[90%] grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <div className="w-full md:w-[90%] grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
                     {data.options.map((opt, idx) => (
                         <button
                             key={idx}
                             onClick={() => handleOptionClick(idx)}
                             disabled={view !== 'question' || isReadOnly}
                             className={`
-                                p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative
+                                p-3 md:p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative
                                 ${view === 'question' && selected === idx ? 'bg-white/10 border-white text-white scale-[1.02]' : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-800/80'}
                                 ${(view === 'result' || isReadOnly) && idx === data.correctId ? '!bg-green-500/20 !border-green-500 !text-green-400' : ''}
                                 ${(view === 'result' || isReadOnly) && !isCorrect && selected === idx ? '!bg-red-500/20 !border-red-500 !text-red-400 opacity-60' : ''}
