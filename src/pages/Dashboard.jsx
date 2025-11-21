@@ -25,17 +25,10 @@ const ReviewButton = () => {
 
     return (
         <div className="fixed bottom-4 right-4 md:bottom-8 md:right-6 z-50 flex items-center justify-end pointer-events-auto scale-90 md:scale-100 origin-bottom-right">
-            <button
-                className="group flex items-center relative outline-none"
-            >
-                <div
-                    className={`
-                        absolute right-full mr-4
-                        flex items-center justify-end overflow-hidden
-                        transition-all duration-500 ease-out
-                        ${isExpanded ? 'w-40 opacity-100' : 'w-0 opacity-0'}
-                    `}
-                >
+            <button className="group flex items-center relative outline-none">
+                <div className={`absolute right-full mr-4 flex items-center justify-end overflow-hidden transition-all duration-500 ease-out ${
+                    isExpanded ? 'w-40 opacity-100' : 'w-0 opacity-0'
+                }`}>
                      <div className="bg-slate-800/90 backdrop-blur border border-slate-700 text-slate-300 text-sm font-bold py-2.5 px-4 rounded-xl whitespace-nowrap shadow-xl">
                         {messages[textIndex]}
                      </div>
@@ -52,26 +45,16 @@ const ReviewButton = () => {
 // --- FEATURE CARD ---
 const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick }) => {
     return (
-        <div
-            onClick={onClick}
-            className={`
-                relative
-                w-[260px] h-[280px] md:h-[320px]
-                rounded-3xl p-5 md:p-6 flex flex-col justify-between
-                transition-all duration-300 transform
-                border border-white/10 backdrop-blur-lg bg-slate-900/60
-                group cursor-pointer select-none
-                hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]
-                ${isLocked ? 'grayscale opacity-60 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-slate-800/80 hover:border-white/20'}
-            `}
-        >
-            {/* Inner Gradient Glow */}
+        <div onClick={onClick}
+            className={`relative w-[260px] h-[280px] md:h-[320px] rounded-3xl p-5 md:p-6 flex flex-col justify-between transition-all duration-300 transform border border-white/10 backdrop-blur-lg bg-slate-900/60 group cursor-pointer select-none hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] ${
+                isLocked ? 'grayscale opacity-60 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-slate-800/80 hover:border-white/20'
+            }`}>
             <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"
                  style={{ background: `radial-gradient(circle at top right, ${color}, transparent 70%)` }}></div>
 
             <div className="relative z-10 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`p-3.5 rounded-2xl bg-slate-950/60 border border-white/5 text-white shadow-inner`}>
+                    <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-white/5 text-white shadow-inner">
                         <Icon className="w-8 h-8" />
                     </div>
                     {isLocked && (
@@ -85,11 +68,9 @@ const FeatureCard = ({ title, description, icon: Icon, color, isLocked, onClick 
                     <h3 className="text-2xl font-bold font-grotesk leading-tight mb-2 text-white">
                         {title}
                     </h3>
-                    {/* Description Text */}
                     <p className="text-sm text-slate-300/80 font-medium leading-snug mb-4 opacity-90 group-hover:opacity-100 transition-opacity">
                         {description}
                     </p>
-
                     <div className="h-1.5 w-10 rounded-full transition-all duration-300 group-hover:w-full" style={{ backgroundColor: color }}></div>
                 </div>
             </div>
@@ -102,26 +83,22 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
     const containerRef = useRef(null);
     const [offset, setOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
-
-    // Using refs for animation loop values to avoid re-renders
     const offsetRef = useRef(0);
     const lastX = useRef(0);
     const velocity = useRef(-0.5);
     const dragStartPos = useRef(0);
 
     const displayItems = [...items, ...items, ...items];
-    const itemWidth = 292; // Approximate width + gap
+    const itemWidth = 292;
     const totalSetWidth = items.length * itemWidth;
 
     useEffect(() => {
         let animationFrameId;
-
         const loop = () => {
             if (!isDragging) {
                 let next = offsetRef.current + velocity.current;
                 if (next <= -totalSetWidth) next += totalSetWidth;
                 if (next > 0) next -= totalSetWidth;
-
                 offsetRef.current = next;
                 setOffset(next);
             }
@@ -167,31 +144,17 @@ const InfiniteCarousel = ({ items, onCardClick }) => {
     };
 
     return (
-        <div
-            className="w-full h-full overflow-hidden flex items-center cursor-grab active:cursor-grabbing touch-none relative z-10"
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseLeave}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-        >
-            <div
-                ref={containerRef}
-                className="flex gap-8 pl-8 pointer-events-none"
-                style={{ transform: `translateX(${offset}px)`, willChange: 'transform' }}
-            >
+        <div className="w-full h-full overflow-hidden flex items-center cursor-grab active:cursor-grabbing touch-none relative z-10"
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+            <div ref={containerRef} className="flex gap-8 pl-8 pointer-events-none"
+                style={{ transform: `translateX(${offset}px)`, willChange: 'transform' }}>
                 {displayItems.map((feature, index) => (
                     <div key={`${feature.id}-${index}`} className="shrink-0 pointer-events-auto">
-                        <FeatureCard
-                            {...feature}
-                            onClick={() => handleClick(feature)}
-                        />
+                        <FeatureCard {...feature} onClick={() => handleClick(feature)} />
                     </div>
                 ))}
             </div>
-
             <div className="absolute left-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-r from-[#0f172a] to-transparent pointer-events-none z-20"></div>
             <div className="absolute right-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-l from-[#0f172a] to-transparent pointer-events-none z-20"></div>
         </div>
