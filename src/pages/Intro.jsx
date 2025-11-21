@@ -6,15 +6,15 @@ import PageTransition from '../components/PageTransition';
 
 // --- SLIDE 1 ---
 const SlideOne = () => (
-    <div className="text-center flex flex-col items-center animate-[fadeIn_0.8s_ease-out] w-full max-w-4xl px-4">
+    <div className="text-center flex flex-col items-center animate-[fadeIn_0.8s_ease-out] w-[90%] max-w-4xl px-4">
         <div className="inline-flex items-center justify-center px-4 py-2 mb-8 rounded-full bg-[#0d9488]/10 border border-[#0d9488]/30 text-[#0d9488]">
             <Brain className="w-5 h-5 mr-2 animate-pulse" />
             <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase">System Upgrade</span>
         </div>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-xl">
-            Innovating <br/> knowledge <br/> acquisition.
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-xl break-words w-full">
+            Innovating <br className="hidden md:block"/> knowledge <br className="hidden md:block"/> acquisition.
         </h1>
-        <p className="text-slate-400 text-base md:text-xl max-w-lg mx-auto leading-relaxed">
+        <p className="text-slate-400 text-sm md:text-xl max-w-lg mx-auto leading-relaxed">
             Welcome to Learnty. Step into the neural network of the future.
         </p>
     </div>
@@ -22,12 +22,12 @@ const SlideOne = () => (
 
 // --- SLIDE 2 ---
 const SlideTwo = () => (
-    <div className="flex flex-col items-center justify-center gap-6 md:gap-10 w-full max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
+    <div className="flex flex-col items-center justify-center gap-6 md:gap-10 w-[90%] max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
         <div className="w-full">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight text-white">
                 Books <span className="relative inline-block text-red-400">Decay.</span>
             </h2>
-            <p className="text-lg text-slate-300 mb-2 leading-relaxed">
+            <p className="text-base md:text-lg text-slate-300 mb-2 leading-relaxed">
                 Research shows you forget <span className="text-[#0d9488] font-bold">80% - 90%</span> of what you read after just one week.
             </p>
             <p className="text-xs text-red-400 font-mono inline-block px-2 py-1 rounded bg-red-950/30 border border-red-900/50">
@@ -56,16 +56,16 @@ const SlideTwo = () => (
 
 // --- SLIDE 3 ---
 const SlideThree = () => (
-    <div className="flex flex-col items-center justify-center gap-8 w-full max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
+    <div className="flex flex-col items-center justify-center gap-8 w-[90%] max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
         <div className="w-full">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight text-white">
                 School is <span className="text-red-500">Bloatware.</span>
             </h2>
-            <p className="text-lg text-slate-300 mb-6 leading-relaxed">
+            <p className="text-base md:text-lg text-slate-300 mb-6 leading-relaxed">
                 Too slow. Too expensive. <br/>
                 <span className="opacity-75">Obsolete operating system.</span>
             </p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 flex-wrap">
                 <div className="px-3 py-1.5 rounded bg-red-950/30 border border-red-900/50 text-xs font-mono text-red-300">$$$ EXPENSIVE</div>
                 <div className="px-3 py-1.5 rounded bg-red-950/30 border border-red-900/50 text-xs font-mono text-red-300">latency: HIGH</div>
             </div>
@@ -82,7 +82,7 @@ const SlideThree = () => (
 
 // --- SLIDE 4 ---
 const SlideFour = () => (
-    <div className="w-full max-w-md md:max-w-lg mx-auto px-4 flex flex-col items-center animate-[zoomIn_0.5s_ease-out]">
+    <div className="w-[90%] max-w-md md:max-w-lg mx-auto px-4 flex flex-col items-center animate-[zoomIn_0.5s_ease-out]">
         <div className="relative w-full aspect-[4/3.5] mb-8">
             <div className="absolute -top-4 -right-2 z-20 w-12 h-12 md:w-16 md:h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-yellow-200 transform rotate-12 animate-[bounce_3s_infinite]">
                 <span className="text-yellow-900 font-bold text-xl md:text-2xl">A+</span>
@@ -181,7 +181,7 @@ const Intro = () => {
                         ))}
                     </div>
                     <button onClick={nextSlide}
-                        className="group relative w-full max-w-xs md:max-w-sm py-3 md:py-4 bg-[#0d9488] rounded-full overflow-hidden shadow-[0_0_20px_rgba(13,148,136,0.3)] transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(13,148,136,0.5)]">
+                        className="group relative w-[90%] max-w-xs md:max-w-sm py-3 md:py-4 bg-[#0d9488] rounded-full overflow-hidden shadow-[0_0_20px_rgba(13,148,136,0.3)] transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(13,148,136,0.5)]">
                         <div className="flex items-center justify-center gap-2 font-bold text-base md:text-lg text-white">
                             {currentSlide === totalSlides - 1 ? "Start Playing" : "Continue"}
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

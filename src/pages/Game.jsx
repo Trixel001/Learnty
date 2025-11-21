@@ -145,7 +145,7 @@ const QuizStep = ({ data, onNext, savedState }) => {
             </div>
 
             <div className={`
-                w-[90%] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden group font-mono text-base md:text-xl text-slate-300 transition-all duration-300 border border-white/10
+                w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden group font-mono text-base md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto
                 ${isReadOnly && !isCorrect ? 'border-red-500/30' : ''}
                 ${isReadOnly && isCorrect ? 'border-green-500/30' : ''}
             `}>
@@ -167,7 +167,7 @@ const QuizStep = ({ data, onNext, savedState }) => {
                         ))}
                     </div>
                 ) : (
-                    <div className="whitespace-pre-wrap text-center break-words">
+                    <div className="whitespace-pre-wrap text-center break-words min-w-min">
                         {data.codeDisplay}
                     </div>
                 )}
@@ -215,7 +215,7 @@ const QuizStep = ({ data, onNext, savedState }) => {
 
             {view === 'result' && !isReadOnly && (
                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-[pop_0.3s_ease-out]">
-                    <div className={`w-full max-w-md border rounded-2xl p-6 shadow-2xl ${isCorrect ? 'bg-green-950/40 border-green-500/30' : 'bg-red-950/40 border-red-500/30'}`}>
+                    <div className={`w-[90%] max-w-md border rounded-2xl p-6 shadow-2xl ${isCorrect ? 'bg-green-950/40 border-green-500/30' : 'bg-red-950/40 border-red-500/30'}`}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className={`p-2 rounded-full ${isCorrect ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {isCorrect ? <Check className="w-6 h-6" /> : <X className="w-6 h-6" />}
