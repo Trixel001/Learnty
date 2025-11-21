@@ -51,7 +51,7 @@ const InputView = ({ onGenerate }) => {
                                 key={opt.id}
                                 onClick={() => setDepth(opt.id)}
                                 className={`
-                                    relative py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all
+                                    relative py-2.5 rounded-lg text-[10px] md:text-sm font-medium transition-all active:scale-95
                                     ${depth === opt.id
                                         ? 'bg-[#0d9488] text-white shadow-lg'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
@@ -62,7 +62,7 @@ const InputView = ({ onGenerate }) => {
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center justify-end mt-2 gap-1.5 text-xs font-mono text-[#2dd4bf]">
+                    <div className="flex items-center justify-end mt-2 gap-1.5 text-[10px] md:text-xs font-mono text-[#2dd4bf]">
                         <Clock className="w-3 h-3" />
                         <span>Est. Playtime: {depthOptions.find(d => d.id === depth).time}</span>
                     </div>
@@ -87,7 +87,7 @@ const InputView = ({ onGenerate }) => {
                         <button
                             key={s}
                             onClick={() => setTopic(s)}
-                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-[10px] md:text-xs text-slate-300 transition-colors"
+                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-[10px] md:text-xs text-slate-300 transition-colors active:scale-95"
                         >
                             {s}
                         </button>
@@ -157,48 +157,57 @@ const GeneratingView = ({ topic, depth, onComplete }) => {
             </div>
 
             <div className="w-full max-w-[90%] md:max-w-md flex-1 overflow-y-auto custom-scrollbar relative pl-4">
-                <div className="absolute left-[27px] top-4 bottom-0 w-1 bg-slate-800 rounded-full"></div>
+                {/* Updated Timeline Logic: Flex-based to remove magic numbers */}
+                <div className="relative flex flex-col gap-6 md:gap-8">
+                    {progressSteps.map((step, index) => {
+                        const isLast = index === progressSteps.length - 1;
+                        const isBoss = step.type === 'boss';
 
-                {progressSteps.map((step, index) => {
-                    const isLast = index === progressSteps.length - 1;
-                    const isBoss = step.type === 'boss';
+                        return (
+                            <div key={step.id} className="flex gap-4 md:gap-6 group animate-[pop_0.5s_cubic-bezier(0.17,0.67,0.83,0.67)]">
+                                {/* Column 1: Icon + Line */}
+                                <div className="flex flex-col items-center relative shrink-0">
+                                    <div className={`
+                                        relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all duration-500 shrink-0
+                                        ${isBoss
+                                            ? 'bg-red-900/80 border-red-500 text-red-200 scale-110'
+                                            : 'bg-slate-900/90 border-[#0d9488] text-[#2dd4bf]'
+                                        }
+                                        ${isLast ? 'animate-glow-red' : ''}
+                                    `}>
+                                        {isBoss ? <Sparkles className="w-6 h-6 md:w-8 md:h-8" /> : <Unlock className="w-5 h-5 md:w-6 md:h-6" />}
+                                    </div>
 
-                    return (
-                        <div key={step.id} className="relative flex items-start mb-4 md:mb-8 group animate-[pop_0.5s_cubic-bezier(0.17,0.67,0.83,0.67)]">
-                            <div className="absolute left-[27px] -top-8 w-1 bg-[#0d9488] shadow-[0_0_10px_#0d9488] h-10 animate-pulse"></div>
-
-                            <div className={`
-                                relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all duration-500 shrink-0
-                                ${isBoss
-                                    ? 'bg-red-900/80 border-red-500 text-red-200 scale-110'
-                                    : 'bg-slate-900/90 border-[#0d9488] text-[#2dd4bf]'
-                                }
-                                ${isLast ? 'animate-glow-red' : ''}
-                            `}>
-                                {isBoss ? <Sparkles className="w-6 h-6 md:w-8 md:h-8" /> : <Unlock className="w-5 h-5 md:w-6 md:h-6" />}
-                            </div>
-
-                            <div className="ml-3 md:ml-6 flex-1 bg-slate-900/60 backdrop-blur border border-white/10 p-3 md:p-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02]">
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-[9px] md:text-[10px] font-bold tracking-wider uppercase ${isBoss ? 'text-red-400' : 'text-[#2dd4bf]'}`}>
-                                        {isBoss ? 'Final Stage' : `Level 0${step.id}`}
-                                    </span>
-                                    <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-slate-300">
-                                        {isBoss ? '1000 XP' : '250 XP'}
-                                    </span>
+                                    {/* Connector Line - connects to next item or fades out */}
+                                    {!isLast && (
+                                        <div className="w-1 bg-[#0d9488] shadow-[0_0_10px_#0d9488] flex-1 min-h-[2rem] mt-[-4px] mb-[-4px] relative z-0"></div>
+                                    )}
                                 </div>
-                                <h3 className="text-white font-bold text-sm md:text-lg leading-tight">{step.title}</h3>
-                            </div>
-                        </div>
-                    );
-                })}
 
-                {progressSteps.length < config.count && (
-                    <div className="relative flex items-start ml-[2px] opacity-50">
-                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center animate-spin shrink-0"></div>
-                        <div className="ml-7 mt-3 text-slate-600 text-sm font-mono animate-pulse">Decrypting...</div>
-                    </div>
-                )}
+                                {/* Column 2: Content */}
+                                <div className="flex-1 bg-slate-900/60 backdrop-blur border border-white/10 p-3 md:p-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02] self-start">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className={`text-[9px] md:text-[10px] font-bold tracking-wider uppercase ${isBoss ? 'text-red-400' : 'text-[#2dd4bf]'}`}>
+                                            {isBoss ? 'Final Stage' : `Level 0${step.id}`}
+                                        </span>
+                                        <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-slate-300">
+                                            {isBoss ? '1000 XP' : '250 XP'}
+                                        </span>
+                                    </div>
+                                    <h3 className="text-white font-bold text-sm md:text-lg leading-tight">{step.title}</h3>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Decrypting State */}
+                    {progressSteps.length < config.count && (
+                        <div className="flex gap-4 md:gap-6 opacity-50">
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center animate-spin shrink-0"></div>
+                            <div className="mt-3 text-slate-600 text-sm font-mono animate-pulse">Decrypting...</div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -230,10 +239,10 @@ const TopicGame = () => {
             <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden">
                 <GalaxyBackground />
 
-                <header className="absolute top-0 left-0 w-full p-6 flex items-center justify-between z-30 pointer-events-none">
+                <header className="absolute top-0 left-0 w-full p-6 flex items-center justify-between z-30 pointer-events-none pt-safe">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="pointer-events-auto p-2 rounded-full bg-slate-900/50 border border-white/10 text-slate-400 hover:text-white transition-colors"
+                        className="pointer-events-auto p-3 rounded-full bg-slate-900/50 border border-white/10 text-slate-400 hover:text-white transition-colors active:scale-95"
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </button>
