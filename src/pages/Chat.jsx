@@ -5,7 +5,6 @@ import { ArrowLeft, Send, Mic, Brain, Clock, Plus, MessageSquare } from 'lucide-
 import { useGlobalState } from '../context/GlobalContext';
 import PageTransition from '../components/PageTransition';
 
-// --- SIDEBAR COMPONENT ---
 const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
     if (!isOpen) return null;
 
@@ -18,13 +17,7 @@ const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Backdrop */}
-            <div
-                onClick={onClose}
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-            ></div>
-
-            {/* Drawer */}
+            <div onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
             <div className="relative w-[85%] md:w-[75%] max-w-sm h-full bg-slate-900/95 border-l border-white/10 shadow-2xl sidebar-enter flex flex-col animate-[slideInRight_0.3s_ease-out]">
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <h2 className="text-xl font-bold font-grotesk text-white">History</h2>
@@ -32,7 +25,6 @@ const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
                         <ArrowLeft className="w-6 h-6 rotate-180" />
                     </button>
                 </div>
-
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {historyItems.map(item => (
                         <div key={item.id} className="group p-4 rounded-2xl bg-slate-800/40 border border-white/5 hover:bg-[#0d9488]/10 hover:border-[#0d9488]/30 transition-all cursor-pointer">
@@ -44,12 +36,9 @@ const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
                         </div>
                     ))}
                 </div>
-
                 <div className="p-6 border-t border-white/5 bg-slate-900/50">
-                    <button
-                        onClick={() => { onNewChat(); onClose(); }}
-                        className="w-full py-3.5 bg-[#0d9488] hover:bg-[#0f766e] text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(13,148,136,0.3)] active:scale-95 transition-all"
-                    >
+                    <button onClick={() => { onNewChat(); onClose(); }}
+                        className="w-full py-3.5 bg-[#0d9488] hover:bg-[#0f766e] text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(13,148,136,0.3)] active:scale-95 transition-all">
                         <Plus className="w-5 h-5" />
                         Start New Chat
                     </button>
@@ -59,7 +48,6 @@ const ChatSidebar = ({ isOpen, onClose, onNewChat }) => {
     );
 };
 
-// --- CHAT BUBBLES ---
 const MessageBubble = ({ text, sender }) => {
     const isBot = sender === 'bot';
     return (
@@ -71,13 +59,9 @@ const MessageBubble = ({ text, sender }) => {
                     </div>
                 </div>
             )}
-            <div className={`
-                relative max-w-[85%] md:max-w-[75%] px-4 py-3 md:px-5 md:py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border
-                ${isBot
-                    ? 'bg-slate-900/80 border-slate-700 text-slate-200 rounded-tl-none'
-                    : 'bg-[#0d9488]/90 border-[#2dd4bf]/30 text-white rounded-tr-none'
-                }
-            `}>
+            <div className={`relative max-w-[85%] md:max-w-[75%] px-4 py-3 md:px-5 md:py-3.5 rounded-2xl text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-md border ${
+                isBot ? 'bg-slate-900/80 border-slate-700 text-slate-200 rounded-tl-none' : 'bg-[#0d9488]/90 border-[#2dd4bf]/30 text-white rounded-tr-none'
+            }`}>
                 {text}
             </div>
         </div>
@@ -99,7 +83,6 @@ const TypingIndicator = () => (
     </div>
 );
 
-// --- MAIN APP ---
 const Chat = () => {
     const { chatMessages, setChatMessages } = useGlobalState();
     const [input, setInput] = useState("");
@@ -109,12 +92,10 @@ const Chat = () => {
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
 
-    // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatMessages, isTyping]);
 
-    // Header Text Animation Loop
     useEffect(() => {
         const interval = setInterval(() => {
             setHeaderText(prev => prev === "Learnie" ? "New Chat" : "Learnie");
@@ -157,20 +138,11 @@ const Chat = () => {
         <PageTransition>
             <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden">
                 <GalaxyBackground />
+                <ChatSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onNewChat={startNewChat} />
 
-                <ChatSidebar
-                    isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
-                    onNewChat={startNewChat}
-                />
-
-                {/* --- HEADER (FLOATING) --- */}
                 <header className="absolute top-0 left-0 w-full h-20 md:h-28 z-30 pointer-events-none flex items-center md:items-start justify-between px-4 md:px-6 py-4 md:py-6 bg-gradient-to-b from-[#0f172a]/90 to-transparent">
-
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
-                    >
+                    <button onClick={() => navigate('/dashboard')}
+                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10">
                         <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
 
@@ -179,26 +151,20 @@ const Chat = () => {
                             <div className="absolute inset-0 bg-[#0d9488] blur-xl opacity-30 rounded-full animate-glow-red group-hover:opacity-60 transition-opacity"></div>
                             <Brain className="w-8 h-8 md:w-10 md:h-10 text-[#2dd4bf] relative z-10 drop-shadow-[0_0_10px_rgba(45,212,191,0.8)] transition-transform group-hover:rotate-12 group-active:scale-90" />
                         </div>
-
                         <div className="relative h-4 w-24 mt-1 md:mt-2 text-center overflow-hidden">
-                            <span
-                                key={headerText}
-                                className="absolute inset-0 flex items-center justify-center text-[9px] md:text-[10px] font-grotesk tracking-[0.2em] text-[#2dd4bf] uppercase opacity-90 animate-[pulse_4s_infinite]"
-                            >
+                            <span key={headerText}
+                                className="absolute inset-0 flex items-center justify-center text-[9px] md:text-[10px] font-grotesk tracking-[0.2em] text-[#2dd4bf] uppercase opacity-90 animate-[pulse_4s_infinite]">
                                 {headerText}
                             </span>
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10"
-                    >
+                    <button onClick={() => setSidebarOpen(true)}
+                        className="pointer-events-auto p-2 md:p-3 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white backdrop-blur-sm border border-transparent hover:border-white/10">
                         <Clock className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 </header>
 
-                {/* --- CHAT AREA --- */}
                 <main className="flex-1 overflow-y-auto p-4 md:p-6 pt-24 md:pt-32 pb-4 relative z-10 custom-scrollbar">
                     <div className="max-w-3xl mx-auto flex flex-col justify-end min-h-full">
                         {chatMessages.map(msg => (
@@ -209,35 +175,20 @@ const Chat = () => {
                     </div>
                 </main>
 
-                {/* --- FOOTER --- */}
                 <footer className="flex-shrink-0 p-3 md:p-6 relative z-20 bg-slate-900/60 backdrop-blur-xl border-t border-white/5 pb-safe">
                     <form onSubmit={handleSend} className="max-w-3xl mx-auto relative flex items-end gap-2 md:gap-3">
-                        <button
-                            type="button"
-                            className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-[#0d9488] hover:border-[#0d9488]/50 hover:bg-[#0d9488]/10 transition-all active:scale-95"
-                        >
+                        <button type="button"
+                            className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-[#0d9488] hover:border-[#0d9488]/50 hover:bg-[#0d9488]/10 transition-all active:scale-95">
                             <Mic className="w-5 h-5 md:w-6 md:h-6" />
                         </button>
                         <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Ask Learnie anything..."
-                                className="w-full h-10 md:h-12 pl-4 md:pl-5 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 text-sm md:text-base focus:outline-none focus:border-[#0d9488] focus:ring-1 focus:ring-[#0d9488] transition-all shadow-inner"
-                            />
+                            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Learnie anything..."
+                                className="w-full h-10 md:h-12 pl-4 md:pl-5 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 text-sm md:text-base focus:outline-none focus:border-[#0d9488] focus:ring-1 focus:ring-[#0d9488] transition-all shadow-inner" />
                         </div>
-                        <button
-                            type="submit"
-                            disabled={!input.trim()}
-                            className={`
-                                flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95
-                                ${input.trim()
-                                    ? 'bg-[#0d9488] hover:bg-[#0f766e] shadow-[0_0_15px_#0d9488]'
-                                    : 'bg-slate-800 border border-slate-700 text-slate-600 cursor-not-allowed'
-                                }
-                            `}
-                        >
+                        <button type="submit" disabled={!input.trim()}
+                            className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95 ${
+                                input.trim() ? 'bg-[#0d9488] hover:bg-[#0f766e] shadow-[0_0_15px_#0d9488]' : 'bg-slate-800 border border-slate-700 text-slate-600 cursor-not-allowed'
+                            }`}>
                             <Send className={`w-4 h-4 md:w-5 md:h-5 ${input.trim() ? 'translate-x-0.5 translate-y-0.5' : ''}`} />
                         </button>
                     </form>
