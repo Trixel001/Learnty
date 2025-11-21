@@ -5,7 +5,6 @@ import { X, Zap, Brain, ChevronLeft, ChevronRight, Check, Lightbulb } from 'luci
 import { useGlobalState } from '../context/GlobalContext';
 import PageTransition from '../components/PageTransition';
 
-// --- DATA ---
 const stepsData = [
     {
         id: 1,
@@ -60,9 +59,8 @@ const stepsData = [
     },
 ];
 
-// --- SUB-COMPONENTS ---
 const Header = ({ current, total, xp, streak, onClose }) => (
-    <header className="fixed top-0 left-0 w-full px-6 py-4 z-40 flex flex-col gap-4 bg-gradient-to-b from-[#0f172a] to-transparent">
+    <header className="fixed top-0 left-0 w-full px-4 md:px-6 py-4 z-40 flex flex-col gap-3 md:gap-4 bg-gradient-to-b from-[#0f172a] to-transparent">
         <div className="flex items-center justify-between">
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-800/50 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all">
                 <X className="w-5 h-5" />
@@ -95,13 +93,13 @@ const BreathIntro = ({ onComplete }) => {
 
     return (
         <div className="flex flex-col items-center justify-center h-full z-20 relative animate-[pop_1s_ease-out] w-full">
-            <div className={`
-                w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-[#0d9488] to-blue-500 blur-2xl
-                transition-all duration-[4000ms] ease-in-out
-                ${phase === 'Inhale' ? 'scale-125 opacity-100' : ''}
-                ${phase === 'Hold' ? 'scale-125 opacity-80 shadow-[0_0_60px_#0d9488]' : ''}
-                ${phase === 'Exhale' ? 'scale-75 opacity-40' : ''}
-            `}></div>
+            <div className={`w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-[#0d9488] to-blue-500 blur-2xl transition-all duration-[4000ms] ease-in-out ${
+                phase === 'Inhale' ? 'scale-125 opacity-100' : ''
+            } ${
+                phase === 'Hold' ? 'scale-125 opacity-80 shadow-[0_0_60px_#0d9488]' : ''
+            } ${
+                phase === 'Exhale' ? 'scale-75 opacity-40' : ''
+            }`}></div>
             <h2 className="mt-12 text-3xl md:text-4xl font-light tracking-[0.3em] uppercase text-white transition-all duration-500">{phase}</h2>
             <p className="mt-4 text-sm text-slate-500 font-mono">Syncing Neural State...</p>
         </div>
@@ -112,7 +110,6 @@ const QuizStep = ({ data, onNext, savedState }) => {
     const [selected, setSelected] = useState(savedState?.selected ?? null);
     const [view, setView] = useState(savedState?.view ?? 'question');
     const [isCorrect, setIsCorrect] = useState(savedState?.isCorrect ?? false);
-
     const isReadOnly = !!savedState;
 
     const handleCodeClick = (partId) => {
@@ -127,7 +124,6 @@ const QuizStep = ({ data, onNext, savedState }) => {
 
     const handleLock = () => {
         if (selected === null) return;
-        // Skip reflection for simplicity in port, go straight to result
         const correct = selected === data.correctId;
         setIsCorrect(correct);
         setView('result');
@@ -138,30 +134,28 @@ const QuizStep = ({ data, onNext, savedState }) => {
     };
 
     return (
-        <div className={`w-full max-w-2xl flex flex-col items-center pb-24 md:pb-0 px-4 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
+        <div className={`w-full max-w-2xl flex flex-col items-center px-4 ${isReadOnly ? 'opacity-90' : 'animate-[pop_0.4s_ease-out]'}`}>
             <div className="text-center mb-4 md:mb-6">
-                <span className={`inline-block px-3 py-1 rounded text-[10px] font-bold tracking-[0.2em] uppercase mb-3 border bg-[#0d9488]/20 text-[#2dd4bf] border-[#0d9488]/30`}>{data.type}</span>
+                <span className="inline-block px-3 py-1 rounded text-[10px] font-bold tracking-[0.2em] uppercase mb-3 border bg-[#0d9488]/20 text-[#2dd4bf] border-[#0d9488]/30">{data.type}</span>
                 <h2 className="text-lg md:text-3xl font-bold text-white leading-tight px-4">{data.question}</h2>
             </div>
 
-            <div className={`
-                w-full md:w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-4 md:p-8 mb-4 md:mb-6 relative overflow-hidden group font-mono text-sm md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto
-                ${isReadOnly && !isCorrect ? 'border-red-500/30' : ''}
-                ${isReadOnly && isCorrect ? 'border-green-500/30' : ''}
-            `}>
+            <div className={`w-full md:w-[90%] max-w-[600px] glass-panel bg-slate-800/60 backdrop-blur rounded-2xl p-4 md:p-8 mb-4 md:mb-6 relative overflow-hidden group font-mono text-sm md:text-xl text-slate-300 transition-all duration-300 border border-white/10 overflow-x-auto ${
+                isReadOnly && !isCorrect ? 'border-red-500/30' : ''
+            } ${
+                isReadOnly && isCorrect ? 'border-green-500/30' : ''
+            }`}>
                  {data.codeParts ? (
                     <div className="flex flex-wrap gap-2 items-center justify-center">
                         {data.codeParts.map((part) => (
-                            <span
-                                key={part.id}
-                                onClick={() => handleCodeClick(part.id)}
-                                className={`
-                                    p-2 rounded cursor-pointer transition-all border border-transparent
-                                    ${view === 'question' && selected === part.id ? 'bg-white/10 border-white/30 scale-105' : 'hover:bg-white/5'}
-                                    ${(view === 'result' || isReadOnly) && part.id === data.correctId ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}
-                                    ${(view === 'result' || isReadOnly) && !isCorrect && selected === part.id ? 'bg-red-500/20 text-red-300' : ''}
-                                `}
-                            >
+                            <span key={part.id} onClick={() => handleCodeClick(part.id)}
+                                className={`p-2 rounded cursor-pointer transition-all border border-transparent ${
+                                    view === 'question' && selected === part.id ? 'bg-white/10 border-white/30 scale-105' : 'hover:bg-white/5'
+                                } ${
+                                    (view === 'result' || isReadOnly) && part.id === data.correctId ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''
+                                } ${
+                                    (view === 'result' || isReadOnly) && !isCorrect && selected === part.id ? 'bg-red-500/20 text-red-300' : ''
+                                }`}>
                                 {part.text}
                             </span>
                         ))}
@@ -176,17 +170,14 @@ const QuizStep = ({ data, onNext, savedState }) => {
             {data.options && (
                 <div className="w-full md:w-[90%] grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
                     {data.options.map((opt, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => handleOptionClick(idx)}
-                            disabled={view !== 'question' || isReadOnly}
-                            className={`
-                                p-3 md:p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative
-                                ${view === 'question' && selected === idx ? 'bg-white/10 border-white text-white scale-[1.02]' : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-800/80'}
-                                ${(view === 'result' || isReadOnly) && idx === data.correctId ? '!bg-green-500/20 !border-green-500 !text-green-400' : ''}
-                                ${(view === 'result' || isReadOnly) && !isCorrect && selected === idx ? '!bg-red-500/20 !border-red-500 !text-red-400 opacity-60' : ''}
-                            `}
-                        >
+                        <button key={idx} onClick={() => handleOptionClick(idx)} disabled={view !== 'question' || isReadOnly}
+                            className={`p-3 md:p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative ${
+                                view === 'question' && selected === idx ? 'bg-white/10 border-white text-white scale-[1.02]' : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-800/80'
+                            } ${
+                                (view === 'result' || isReadOnly) && idx === data.correctId ? '!bg-green-500/20 !border-green-500 !text-green-400' : ''
+                            } ${
+                                (view === 'result' || isReadOnly) && !isCorrect && selected === idx ? '!bg-red-500/20 !border-red-500 !text-red-400 opacity-60' : ''
+                            }`}>
                             {opt}
                         </button>
                     ))}
@@ -196,17 +187,10 @@ const QuizStep = ({ data, onNext, savedState }) => {
             <div className="w-full p-4 flex justify-center">
                  <div className="w-full max-w-md">
                     {view === 'question' && !isReadOnly && (
-                        <button
-                            onClick={handleLock}
-                            disabled={selected === null}
-                            className={`
-                                w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all
-                                ${selected !== null
-                                    ? 'bg-[#0d9488] hover:bg-[#0f766e] transform active:scale-95'
-                                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                                }
-                            `}
-                        >
+                        <button onClick={handleLock} disabled={selected === null}
+                            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all ${
+                                selected !== null ? 'bg-[#0d9488] hover:bg-[#0f766e] transform active:scale-95' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                            }`}>
                             Lock Answer
                         </button>
                     )}
@@ -263,27 +247,20 @@ const LevelUp = ({ accuracy, xp, onRestart }) => {
     );
 };
 
-// --- MAIN GAME COMPONENT ---
 const Game = () => {
     const navigate = useNavigate();
-    const {
-        gameXP, setGameXP,
-        gameStreak, setGameStreak,
-        gameHistory, setGameHistory
-    } = useGlobalState();
-
+    const { gameXP, setGameXP, gameStreak, setGameStreak, gameHistory, setGameHistory } = useGlobalState();
     const [stage, setStage] = useState('intro');
     const [activeStepIndex, setActiveStepIndex] = useState(0);
     const [viewingStepIndex, setViewingStepIndex] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
 
-    // Initial check: if we have history, skip intro
     useEffect(() => {
         const historyKeys = Object.keys(gameHistory).map(Number);
         if (historyKeys.length > 0) {
             const maxIdx = Math.max(...historyKeys);
             if (maxIdx >= stepsData.length - 1) {
-                setStage('victory'); // Or just completed state
+                setStage('victory');
             } else {
                 setStage('game');
                 setActiveStepIndex(maxIdx + 1);
@@ -314,7 +291,6 @@ const Game = () => {
         }
     };
 
-    // Swipe logic for history review
     const touchStart = useRef(null);
     const touchEnd = useRef(null);
     const onTouchStart = (e) => { touchEnd.current = null; touchStart.current = e.targetTouches[0].clientX; };
@@ -322,43 +298,32 @@ const Game = () => {
     const onTouchEnd = () => {
         if (!touchStart.current || !touchEnd.current) return;
         const distance = touchStart.current - touchEnd.current;
-        if (distance > 50) { // Left swipe (Next)
+        if (distance > 50) {
             if (viewingStepIndex < activeStepIndex) setViewingStepIndex(prev => prev + 1);
         }
-        if (distance < -50) { // Right swipe (Prev)
+        if (distance < -50) {
             if (viewingStepIndex > 0) setViewingStepIndex(prev => prev - 1);
         }
     };
 
     return (
         <PageTransition>
-            <div
-                className="relative w-full h-[100dvh] flex flex-col bg-[#0f172a] overflow-hidden"
-                onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-            >
+            <div className="relative w-full h-[100dvh] flex flex-col bg-[#0f172a] overflow-hidden"
+                onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
                 <GalaxyBackground />
 
                 {stage === 'game' && (
-                    <Header
-                        current={viewingStepIndex}
-                        total={stepsData.length}
-                        xp={gameXP}
-                        streak={gameStreak}
-                        onClose={() => navigate('/dashboard')}
-                    />
+                    <Header current={viewingStepIndex} total={stepsData.length} xp={gameXP} streak={gameStreak}
+                        onClose={() => navigate('/dashboard')} />
                 )}
 
-                <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full overflow-y-auto md:overflow-hidden pt-20 md:pt-0">
+                <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full overflow-y-auto pt-20">
                     {stage === 'intro' && <BreathIntro onComplete={handleIntroComplete} />}
 
                     {stage === 'game' && (
                         <>
-                            <QuizStep
-                                key={viewingStepIndex}
-                                data={stepsData[viewingStepIndex]}
-                                onNext={handleNextStep}
-                                savedState={gameHistory[viewingStepIndex]}
-                            />
+                            <QuizStep key={viewingStepIndex} data={stepsData[viewingStepIndex]}
+                                onNext={handleNextStep} savedState={gameHistory[viewingStepIndex]} />
                             {viewingStepIndex < activeStepIndex && (
                                 <div className="absolute right-4 top-1/2 animate-pulse text-white/30"><ChevronRight className="w-8 h-8" /></div>
                             )}
@@ -369,11 +334,8 @@ const Game = () => {
                     )}
 
                     {stage === 'victory' && (
-                        <LevelUp
-                            accuracy={Math.round((correctCount / stepsData.length) * 100)}
-                            xp={2500}
-                            onRestart={() => navigate('/dashboard')}
-                        />
+                        <LevelUp accuracy={Math.round((correctCount / stepsData.length) * 100)} xp={2500}
+                            onRestart={() => navigate('/dashboard')} />
                     )}
                 </main>
             </div>
