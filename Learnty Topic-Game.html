@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Learnty - Topic to Game</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap');
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f172a;
+            overflow: hidden;
+            color: white;
+            margin: 0;
+        }
+
+        /* --- Animations --- */
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(13, 148, 136, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(13, 148, 136, 0.6); }
+        }
+
+        @keyframes beam-grow {
+            from { height: 0; opacity: 0.5; }
+            to { height: 100%; opacity: 1; }
+        }
+
+        @keyframes node-pop {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Advanced Glitch Effect --- */
+        .glitch-text {
+            position: relative;
+            color: #2dd4bf;
+        }
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a; /* Match bg to hide main text momentarily */
+            opacity: 0.8;
+        }
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff00c1;
+            clip-path: inset(44% 0 61% 0);
+            animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+        }
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -1px 0 #00fff9;
+            clip-path: inset(20% 0 50% 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim-1 {
+            0% { clip-path: inset(20% 0 80% 0); }
+            20% { clip-path: inset(60% 0 10% 0); }
+            40% { clip-path: inset(40% 0 50% 0); }
+            60% { clip-path: inset(80% 0 5% 0); }
+            80% { clip-path: inset(10% 0 70% 0); }
+            100% { clip-path: inset(30% 0 20% 0); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip-path: inset(10% 0 60% 0); }
+            20% { clip-path: inset(30% 0 10% 0); }
+            40% { clip-path: inset(70% 0 30% 0); }
+            60% { clip-path: inset(10% 0 80% 0); }
+            80% { clip-path: inset(50% 0 10% 0); }
+            100% { clip-path: inset(20% 0 40% 0); }
+        }
+
+        /* Custom Scrollbar */
+        .roadmap-scroll::-webkit-scrollbar { width: 4px; }
+        .roadmap-scroll::-webkit-scrollbar-track { background: transparent; }
+        .roadmap-scroll::-webkit-scrollbar-thumb { background: rgba(13, 148, 136, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        /* --- SOUND ENGINE --- */
+        const playSound = (type) => {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            const now = ctx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'pop') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        };
+
+        /* --- ICONS --- */
+        const ArrowLeftIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        );
+        const SparkIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0l1.581 6.135A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+        );
+        const SearchIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        );
+        const UnlockIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+        );
+        const ClockIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        );
+
+        /* --- BACKGROUND --- */
+        const GalaxyBackground = () => {
+            const mountRef = useRef(null);
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                scene.fog = new THREE.FogExp2(0x0f172a, 0.002);
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                mountRef.current.appendChild(renderer.domElement);
+                
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particlesCount = 600;
+                const posArray = new Float32Array(particlesCount * 3);
+                const colors = new Float32Array(particlesCount * 3);
+                const colorTeal = new THREE.Color("#0d9488");
+                const colorWhite = new THREE.Color("#ffffff");
+                
+                for(let i = 0; i < particlesCount * 3; i+=3) {
+                    posArray[i] = (Math.random() - 0.5) * 20;
+                    posArray[i+1] = (Math.random() - 0.5) * 20;
+                    posArray[i+2] = (Math.random() - 0.5) * 20;
+                    const mixedColor = Math.random() > 0.6 ? colorTeal : colorWhite;
+                    colors[i] = mixedColor.r;
+                    colors[i+1] = mixedColor.g;
+                    colors[i+2] = mixedColor.b;
+                }
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                const material = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, transparent: true, opacity: 0.6 });
+                const particlesMesh = new THREE.Points(particlesGeometry, material);
+                scene.add(particlesMesh);
+                camera.position.z = 5;
+                
+                let time = 0;
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    time += 0.001;
+                    particlesMesh.rotation.y = time * 0.3;
+                    renderer.render(scene, camera);
+                };
+                animate();
+                
+                const handleResize = () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    if(mountRef.current) mountRef.current.innerHTML = '';
+                };
+            }, []);
+            return <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none" />;
+        };
+
+        /* --- COMPONENT: INPUT VIEW --- */
+        const InputView = ({ onGenerate }) => {
+            const [topic, setTopic] = useState("");
+            const [depth, setDepth] = useState("standard"); // 'quick', 'standard', 'deep'
+            const suggestions = ["Rocket Science", "Medieval History", "Python Basics", "Jazz Theory"];
+
+            // Map depth to time/label
+            const depthOptions = [
+                { id: 'quick', label: 'Quick Skim', time: '~15m' },
+                { id: 'standard', label: 'Core Quest', time: '~45m' },
+                { id: 'deep', label: 'Deep Dive', time: '~2h+' },
+            ];
+
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-4 relative z-10 animate-[fade-in_0.5s]">
+                    
+                    {/* Main Card - Responsive Width using percentages */}
+                    <div className="w-[90%] max-w-[600px] bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+                        
+                        {/* Floating Spark Icon */}
+                        <div className="w-16 h-16 md:w-20 md:h-20 bg-[#0d9488]/10 rounded-full flex items-center justify-center mb-4 md:mb-6 animate-[float-slow_3s_infinite_ease-in-out]">
+                            <SparkIcon className="w-8 h-8 md:w-10 md:h-10 text-[#2dd4bf] drop-shadow-[0_0_10px_rgba(45,212,191,0.8)]" />
+                        </div>
+
+                        <h1 className="text-2xl md:text-4xl font-bold font-['Space_Grotesk'] mb-2 text-white">
+                            What do you want to <span className="text-[#2dd4bf]">master</span> today?
+                        </h1>
+                        <p className="text-slate-400 mb-6 md:mb-8 text-xs md:text-base max-w-[80%]">
+                            Learnty transforms any topic into an active learning quest.
+                        </p>
+
+                        {/* Input Area */}
+                        <div className="w-full relative mb-6 group-focus-within:scale-[1.02] transition-transform duration-300">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <SearchIcon className="w-5 h-5 text-slate-500" />
+                            </div>
+                            <input 
+                                type="text" 
+                                value={topic}
+                                onChange={(e) => setTopic(e.target.value)}
+                                placeholder="e.g. Astrophysics..."
+                                className="w-full py-3 md:py-4 pl-12 pr-4 bg-slate-800/60 border border-slate-600 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/50 transition-all shadow-inner text-base md:text-lg"
+                            />
+                        </div>
+
+                        {/* Depth Selector (New) */}
+                        <div className="w-full mb-6">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block text-left ml-1">Select Quest Depth</label>
+                            <div className="grid grid-cols-3 gap-2 md:gap-3 bg-slate-950/50 p-1.5 rounded-xl border border-white/5">
+                                {depthOptions.map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => { playSound('click'); setDepth(opt.id); }}
+                                        className={`
+                                            relative py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all
+                                            ${depth === opt.id 
+                                                ? 'bg-[#0d9488] text-white shadow-lg' 
+                                                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                                            }
+                                        `}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* Time Estimate Display */}
+                            <div className="flex items-center justify-end mt-2 gap-1.5 text-xs font-mono text-[#2dd4bf]">
+                                <ClockIcon className="w-3 h-3" />
+                                <span>Est. Playtime: {depthOptions.find(d => d.id === depth).time}</span>
+                            </div>
+                        </div>
+
+                        {/* Generate Button */}
+                        <button 
+                            onClick={() => topic.trim() && onGenerate(topic, depth)}
+                            disabled={!topic.trim()}
+                            className={`
+                                w-full py-3.5 md:py-4 rounded-xl font-bold text-base md:text-lg transition-all transform active:scale-95
+                                ${topic.trim() 
+                                    ? 'bg-gradient-to-r from-[#0d9488] to-[#0f766e] text-white shadow-[0_0_20px_rgba(13,148,136,0.4)] hover:shadow-[0_0_30px_rgba(13,148,136,0.6)]' 
+                                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                }
+                            `}
+                        >
+                            Generate Learning Quest
+                        </button>
+
+                        {/* Suggestions */}
+                        <div className="mt-6 md:mt-8 flex flex-wrap justify-center gap-2">
+                            {suggestions.map((s) => (
+                                <button 
+                                    key={s}
+                                    onClick={() => setTopic(s)}
+                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-[10px] md:text-xs text-slate-300 transition-colors"
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- COMPONENT: GENERATING VIEW --- */
+        const GeneratingView = ({ topic, depth }) => {
+            const [progressSteps, setProgressSteps] = useState([]);
+            const [statusText, setStatusText] = useState("INITIALIZING LINK...");
+            
+            // Map depth to node count for demo
+            const depthSettings = {
+                'quick': { count: 2, time: '~15m' },
+                'standard': { count: 4, time: '~45m' },
+                'deep': { count: 6, time: '~2h+' }
+            };
+            const config = depthSettings[depth] || depthSettings['standard'];
+
+            useEffect(() => {
+                let step = 0;
+                const maxSteps = config.count;
+                
+                const timer = setInterval(() => {
+                    if (step >= maxSteps) {
+                        clearInterval(timer);
+                        setStatusText("READY TO LAUNCH");
+                        return;
+                    }
+
+                    const isBoss = step === maxSteps - 1;
+                    const newItem = { 
+                        id: step + 1, 
+                        title: isBoss ? "Final Boss: The Mastery Exam" : `Module ${step + 1}: ${topic} Basics`, 
+                        type: isBoss ? 'boss' : 'module' 
+                    };
+
+                    setProgressSteps(prev => [...prev, newItem]);
+                    playSound('pop');
+                    
+                    if(step === 0) setStatusText("DECONSTRUCTING TOPIC...");
+                    else if(step === 1) setStatusText("GAMIFYING DATA...");
+                    else if(step === 2) setStatusText("CRAFTING CHALLENGES...");
+                    else setStatusText("FINALIZING QUEST...");
+                    
+                    step++;
+                }, 1200);
+
+                return () => clearInterval(timer);
+            }, [topic, config.count]);
+
+            return (
+                <div className="w-full h-full flex flex-col items-center pt-8 md:pt-12 pb-6 px-4 relative z-10">
+                    
+                    {/* Status Header with Advanced Glitch */}
+                    <div className="text-center mb-8 md:mb-10 relative">
+                        <h2 
+                            className="text-xl md:text-2xl font-bold font-['Space_Grotesk'] tracking-widest uppercase mb-2 glitch-text"
+                            data-text={statusText}
+                        >
+                            {statusText}
+                        </h2>
+                        
+                        {/* Timeframe Estimate Display */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-400 text-xs font-mono">
+                            <ClockIcon className="w-3 h-3 text-[#2dd4bf]" />
+                            <span>Estimated Time: <span className="text-white">{config.time}</span></span>
+                        </div>
+                    </div>
+
+                    {/* Roadmap Container - Responsive Width */}
+                    <div className="w-full max-w-[90%] md:max-w-md flex-1 overflow-y-auto roadmap-scroll relative pl-4">
+                        
+                        <div className="absolute left-[27px] top-4 bottom-0 w-1 bg-slate-800 rounded-full"></div>
+
+                        {progressSteps.map((step, index) => {
+                            const isLast = index === progressSteps.length - 1;
+                            const isBoss = step.type === 'boss';
+
+                            return (
+                                <div key={step.id} className="relative flex items-start mb-6 md:mb-8 group animate-[node-pop_0.5s_cubic-bezier(0.17,0.67,0.83,0.67)]">
+                                    
+                                    <div 
+                                        className="absolute left-[27px] -top-8 w-1 bg-[#0d9488] shadow-[0_0_10px_#0d9488]"
+                                        style={{ height: '40px', animation: 'beam-grow 0.5s ease-out forwards' }}
+                                    ></div>
+
+                                    <div className={`
+                                        relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all duration-500 shrink-0
+                                        ${isBoss 
+                                            ? 'bg-red-900/80 border-red-500 text-red-200 scale-110' 
+                                            : 'bg-slate-900/90 border-[#0d9488] text-[#2dd4bf]'
+                                        }
+                                        ${isLast ? 'animate-[glow-pulse_2s_infinite]' : ''}
+                                    `}>
+                                        {isBoss ? <SparkIcon className="w-8 h-8" /> : <UnlockIcon className="w-6 h-6" />}
+                                    </div>
+
+                                    <div className="ml-4 md:ml-6 flex-1 bg-slate-900/60 backdrop-blur border border-white/10 p-3 md:p-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02]">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={`text-[10px] font-bold tracking-wider uppercase ${isBoss ? 'text-red-400' : 'text-[#2dd4bf]'}`}>
+                                                {isBoss ? 'Final Stage' : `Level 0${step.id}`}
+                                            </span>
+                                            <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-slate-300">
+                                                {isBoss ? '1000 XP' : '250 XP'}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-white font-bold text-base md:text-lg leading-tight">{step.title}</h3>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        
+                        {/* Loading Placeholder */}
+                        {progressSteps.length < config.count && (
+                            <div className="relative flex items-start ml-[2px] opacity-50">
+                                <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center animate-spin-slow shrink-0">
+                                    <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
+                                </div>
+                                <div className="ml-7 mt-3 text-slate-600 text-sm font-mono animate-pulse">
+                                    Decrypting...
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- MAIN APP --- */
+        const App = () => {
+            const [view, setView] = useState('input'); 
+            const [selectedTopic, setSelectedTopic] = useState("");
+            const [selectedDepth, setSelectedDepth] = useState("standard");
+
+            const handleGenerate = (topic, depth) => {
+                playSound('click');
+                setSelectedTopic(topic);
+                setSelectedDepth(depth);
+                setView('generating');
+            };
+
+            return (
+                <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden">
+                    <GalaxyBackground />
+
+                    {/* Simplified Header - Removed text as requested */}
+                    <header className="absolute top-0 left-0 w-full p-6 flex items-center justify-between z-30 pointer-events-none">
+                        <button onClick={() => window.location.reload()} className="pointer-events-auto p-2 rounded-full bg-slate-900/50 border border-white/10 text-slate-400 hover:text-white transition-colors">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                    </header>
+
+                    <main className="flex-1 relative flex items-center justify-center">
+                        {view === 'input' && <InputView onGenerate={handleGenerate} />}
+                        {view === 'generating' && <GeneratingView topic={selectedTopic} depth={selectedDepth} />}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+

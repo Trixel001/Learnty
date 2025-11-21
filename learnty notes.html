@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Learnty Note Ultimate</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap');
+
+        :root {
+            --brand: #0d9488;
+            --bg-dark: #0f172a;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-dark);
+            overflow: hidden;
+            color: white;
+            overscroll-behavior: none;
+            margin: 0;
+            -webkit-tap-highlight-color: transparent;
+            /* Critical: Stops iOS/Android default long-press menus */
+            -webkit-touch-callout: none;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--brand); border-radius: 10px; }
+        
+        /* Editor Styles */
+        .editor-wrapper { position: relative; min-height: 100%; }
+        .editor-content { 
+            outline: none; 
+            min-height: 60vh; 
+            position: relative; 
+            z-index: 10; 
+            white-space: pre-wrap; 
+            word-wrap: break-word;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #f1f5f9;
+            user-select: text;
+            padding-bottom: 200px;
+        }
+        
+        .editor-content p { margin-bottom: 1rem; }
+        .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .editor-content h1 { font-family: 'Space Grotesk'; font-size: 2rem; color: #2dd4bf; margin-bottom: 0.8rem; font-weight: 700; line-height: 1.2; }
+        .editor-content h2 { font-family: 'Space Grotesk'; font-size: 1.6rem; color: #fff; margin-bottom: 0.6rem; font-weight: 600; }
+        .editor-content blockquote { border-left: 4px solid #0d9488; padding-left: 1rem; color: #94a3b8; font-style: italic; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 0 8px 8px 0; margin-bottom: 1rem; }
+        
+        /* Canvas Layer */
+        .drawing-canvas { 
+            pointer-events: none; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 20; 
+            touch-action: none; /* Critical for custom gestures */
+        }
+        
+        /* When drawing mode is ON, canvas gets events */
+        .drawing-mode .drawing-canvas { pointer-events: auto; cursor: crosshair; }
+        .drawing-mode .editor-content { pointer-events: none; user-select: none; opacity: 0.6; filter: blur(0.5px); }
+
+        /* Animations */
+        @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Custom Selection Highlight */
+        ::selection { background: rgba(13, 148, 136, 0.3); color: white; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useLayoutEffect } = React;
+
+        /* --- UTILS --- */
+        const playSound = (type) => {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            const now = ctx.currentTime;
+            
+            const sounds = {
+                click: { type: 'sine', freq: [600, 300], dur: 0.1, vol: 0.1 },
+                save: { type: 'triangle', freq: [400, 800], dur: 0.3, vol: 0.1 },
+                history: { type: 'sine', freq: [300, 200], dur: 0.2, vol: 0.05 },
+                delete: { type: 'sawtooth', freq: [150, 50], dur: 0.15, vol: 0.08 }
+            };
+            
+            const s = sounds[type];
+            if(s) {
+                osc.type = s.type;
+                osc.frequency.setValueAtTime(s.freq[0], now);
+                osc.frequency.linearRampToValueAtTime(s.freq[1], now + s.dur);
+                gain.gain.setValueAtTime(s.vol, now);
+                gain.gain.linearRampToValueAtTime(0, now + s.dur);
+                osc.start(now);
+                osc.stop(now + s.dur);
+            }
+        };
+
+        // --- GEOMETRY & HIT TEST ENGINE ---
+        const getDistance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        
+        const isPointNearLine = (x, y, p1, p2, maxDist = 10) => {
+            const a = x - p1.x; const b = y - p1.y;
+            const c = p2.x - p1.x; const d = p2.y - p1.y;
+            const dot = a * c + b * d;
+            const lenSq = c * c + d * d;
+            const param = lenSq !== 0 ? dot / lenSq : -1;
+            let xx, yy;
+            if (param < 0) { xx = p1.x; yy = p1.y; }
+            else if (param > 1) { xx = p2.x; yy = p2.y; }
+            else { xx = p1.x + param * c; yy = p1.y + param * d; }
+            const dx = x - xx; const dy = y - yy;
+            return (dx * dx + dy * dy) < maxDist * maxDist;
+        };
+
+        // Returns: { id, element, type: 'body' | 'handle', handle: 'br' }
+        const hitTest = (x, y, elements) => {
+            // 1. Check Selection Handles First (Highest Priority)
+            const handleSize = 20; // larger touch target
+            const selectedId = window.currentSelectedId; // Global hack for performance inside event loop
+            
+            if (selectedId) {
+                const el = elements.find(e => e.id === selectedId);
+                if (el && el.type !== 'pen') {
+                    const right = el.x + el.width;
+                    const bottom = el.y + el.height;
+                    if (Math.abs(x - right) < handleSize && Math.abs(y - bottom) < handleSize) {
+                        return { id: el.id, element: el, hitType: 'resize' };
+                    }
+                }
+            }
+
+            // 2. Check Bodies (Reverse order for z-index)
+            for (let i = elements.length - 1; i >= 0; i--) {
+                const el = elements[i];
+                if (el.type === 'rect') {
+                    if(x >= el.x && x <= el.x + el.width && y >= el.y && y <= el.y + el.height) 
+                        return { id: el.id, element: el, hitType: 'move' };
+                } else if (el.type === 'circle') {
+                    const cx = el.x + el.width/2;
+                    const cy = el.y + el.height/2;
+                    if (getDistance({x,y}, {x:cx, y:cy}) < Math.abs(el.width)/2) 
+                        return { id: el.id, element: el, hitType: 'move' };
+                } else if (el.type === 'pen') {
+                    for(let j=0; j<el.points.length-1; j++) {
+                        if(isPointNearLine(x, y, el.points[j], el.points[j+1])) 
+                            return { id: el.id, element: el, hitType: 'move' };
+                    }
+                }
+            }
+            return null;
+        };
+
+        /* --- SUB-COMPONENTS --- */
+        const BrainIcon = ({className}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+            </svg>
+        );
+
+        const GalaxyBackground = () => {
+            const mountRef = useRef(null);
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                if(mountRef.current) mountRef.current.appendChild(renderer.domElement);
+                
+                const geometry = new THREE.BufferGeometry();
+                const count = 600;
+                const pos = new Float32Array(count*3);
+                for(let i=0; i<count*3; i++) pos[i] = (Math.random()-0.5)*25;
+                geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                const material = new THREE.PointsMaterial({size:0.04, color:0x0d9488, transparent:true, opacity:0.4});
+                const stars = new THREE.Points(geometry, material);
+                scene.add(stars);
+                camera.position.z = 5;
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    stars.rotation.y += 0.0005;
+                    renderer.render(scene, camera);
+                };
+                animate();
+                return () => { if(mountRef.current) mountRef.current.innerHTML = ''; };
+            }, []);
+            return <div ref={mountRef} className="fixed inset-0 pointer-events-none z-0" />;
+        };
+
+        const HistoryModal = ({ history, currentIndex, onClose, onRestore }) => (
+            <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+                <div className="w-full max-w-md bg-slate-900 border-t md:border border-white/10 md:rounded-2xl p-6 shadow-2xl animate-[slide-up_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold font-['Space_Grotesk'] text-white">Time Machine</h3>
+                        <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><i className="fas fa-times"></i></button>
+                    </div>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        {history.map((state, idx) => (
+                            <button key={state.timestamp} onClick={() => onRestore(idx)} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${idx === currentIndex ? 'bg-[#0d9488]/20 border-[#0d9488]' : 'bg-slate-800/50 border-white/5'}`}>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-slate-300">{new Date(state.timestamp).toLocaleTimeString()}</span>
+                                    <span className="text-xs text-slate-500 uppercase">{state.reason || 'Auto-save'}</span>
+                                </div>
+                                {idx === currentIndex && <i className="fas fa-check text-[#0d9488]"></i>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const AIReviewModal = ({ type, originalText, onClose, onCommit }) => {
+            const [result, setResult] = useState("");
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const prompts = {
+                    'Fix Grammar': "Corrected version: " + originalText,
+                    'Summarize': "Executive Summary: Key insights extracted.",
+                    'Expand': "Detailed Analysis: Expanding on the concepts...",
+                    'Simplify': "Simply put: " + originalText.substring(0, 30) + "..."
+                };
+                setTimeout(() => {
+                    setResult(prompts[type] || "Processed.");
+                    setLoading(false);
+                }, 1200);
+            }, [type]);
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4" onClick={onClose}>
+                    <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-[pop_0.2s]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-[#0d9488] font-bold"><BrainIcon className="w-5 h-5" /> <span>AI Processor</span></div>
+                            <button onClick={onClose}><i className="fas fa-times text-slate-500"></i></button>
+                        </div>
+                        <div className="p-6">
+                            {loading ? <div className="text-center py-8 text-[#0d9488]"><i className="fas fa-circle-notch fa-spin text-2xl"></i></div> : 
+                            <div className="bg-slate-950 p-4 rounded border border-slate-800 text-slate-300 text-sm">{result}</div>}
+                        </div>
+                        <div className="flex p-4 gap-2 bg-slate-800/50">
+                            <button onClick={() => onCommit(result, 'replace')} className="flex-1 py-2 rounded bg-slate-700 text-white hover:bg-slate-600">Replace</button>
+                            <button onClick={() => onCommit(result, 'insert')} className="flex-1 py-2 rounded bg-[#0d9488] text-white hover:bg-[#0f766e]">Insert</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- MAIN APP --- */
+        const App = () => {
+            // Data State
+            const [content, setContent] = useState('<h1>Learnty Fusion</h1><p>Type notes here. Select text for AI. Switch mode to draw resizable shapes!</p>');
+            const [elements, setElements] = useState([]); 
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+
+            // UI State
+            const [isDrawingMode, setIsDrawingMode] = useState(false);
+            const [tool, setTool] = useState('pen');
+            const [selectedElement, setSelectedElement] = useState(null);
+            const [toast, setToast] = useState(null);
+            const [showHistory, setShowHistory] = useState(false);
+
+            // AI / Text Selection State
+            const [selectionBounds, setSelectionBounds] = useState(null);
+            const [selectedText, setSelectedText] = useState("");
+            const [aiFeature, setAiFeature] = useState(null);
+            const [aiMenuOpen, setAiMenuOpen] = useState(false);
+
+            // Interaction State (Refs for Loop)
+            const action = useRef('none'); // 'drawing', 'moving', 'resizing'
+            const startPos = useRef({x:0, y:0});
+            const canvasRef = useRef(null);
+            const editorRef = useRef(null);
+
+            // --- HISTORY SYSTEM ---
+            const saveState = (reason = 'Edit') => {
+                const state = {
+                    content,
+                    elements: JSON.parse(JSON.stringify(elements)), // Deep copy
+                    timestamp: Date.now(),
+                    reason
+                };
+                const newHistory = history.slice(0, historyIndex + 1);
+                newHistory.push(state);
+                if(newHistory.length > 20) newHistory.shift();
+                
+                setHistory(newHistory);
+                setHistoryIndex(newHistory.length - 1);
+            };
+
+            const restoreState = (index) => {
+                const state = history[index];
+                if(!state) return;
+                setContent(state.content);
+                setElements(state.elements);
+                setHistoryIndex(index);
+                if(editorRef.current) editorRef.current.innerHTML = state.content;
+                setShowHistory(false);
+                playSound('history');
+            };
+
+            useEffect(() => {
+                if(history.length === 0) saveState('Initial');
+            }, []);
+
+            // --- VECTOR RENDERER ---
+            useLayoutEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+                
+                // Resize Logic
+                if (canvas.width !== canvas.offsetWidth * dpr) {
+                    canvas.width = canvas.offsetWidth * dpr;
+                    canvas.height = 4000 * dpr;
+                    ctx.scale(dpr, dpr);
+                }
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                elements.forEach(el => {
+                    const isSelected = selectedElement?.id === el.id;
+                    ctx.strokeStyle = isSelected ? '#2dd4bf' : el.color;
+                    ctx.lineWidth = isSelected ? 3 : 2;
+                    
+                    ctx.beginPath();
+                    if (el.type === 'pen') {
+                        if(el.points.length > 1) {
+                            ctx.moveTo(el.points[0].x, el.points[0].y);
+                            for(let i=1; i<el.points.length; i++) ctx.lineTo(el.points[i].x, el.points[i].y);
+                        }
+                    } else if (el.type === 'rect') {
+                        ctx.rect(el.x, el.y, el.width, el.height);
+                    } else if (el.type === 'circle') {
+                        const rx = Math.abs(el.width)/2;
+                        const ry = Math.abs(el.height)/2;
+                        const cx = el.x + el.width/2;
+                        const cy = el.y + el.height/2;
+                        ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+                    }
+                    ctx.stroke();
+
+                    // Draw Selection UI
+                    if (isSelected && el.type !== 'pen') {
+                        // Bounding Box
+                        ctx.save();
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+                        
+                        // Resize Handle (Bottom Right)
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(el.x + el.width - 5, el.y + el.height - 5, 10, 10);
+                        ctx.restore();
+                    }
+                });
+                
+                // Sync global for hit test
+                window.currentSelectedId = selectedElement?.id;
+
+            }, [elements, selectedElement]);
+
+            // --- INTERACTION HANDLERS (Passive: False Fix) ---
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                
+                const handleStart = (e) => {
+                    if (!isDrawingMode) return;
+                    if (e.cancelable) e.preventDefault(); // STOP SCROLLING
+                    
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const rect = canvas.getBoundingClientRect();
+                    const x = clientX - rect.left;
+                    const y = clientY - rect.top;
+                    startPos.current = {x, y};
+
+                    if (tool === 'select') {
+                        const hit = hitTest(x, y, elements);
+                        if (hit) {
+                            setSelectedElement(hit.element);
+                            action.current = hit.hitType === 'resize' ? 'resizing' : 'moving';
+                            playSound('click');
+                        } else {
+                            setSelectedElement(null);
+                            action.current = 'none';
+                        }
+                    } else {
+                        // Start Drawing
+                        const id = Date.now();
+                        const newEl = { 
+                            id, type: tool, x, y, width: 0, height: 0, 
+                            points: [{x,y}], color: '#0d9488' 
+                        };
+                        setElements(prev => [...prev, newEl]);
+                        setSelectedElement(newEl);
+                        action.current = 'drawing';
+                    }
+                };
+
+                const handleMove = (e) => {
+                    if (!isDrawingMode || action.current === 'none') return;
+                    if (e.cancelable) e.preventDefault(); // CRITICAL PASSIVE FIX
+                    
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const rect = canvas.getBoundingClientRect();
+                    const x = clientX - rect.left;
+                    const y = clientY - rect.top;
+
+                    setElements(prev => {
+                        const next = [...prev];
+                        const idx = next.findIndex(el => el.id === (selectedElement ? selectedElement.id : next[next.length-1].id));
+                        if (idx === -1) return prev;
+                        const el = {...next[idx]}; // Copy logic
+
+                        if (action.current === 'drawing') {
+                            if (el.type === 'pen') el.points = [...el.points, {x,y}];
+                            else { el.width = x - el.x; el.height = y - el.y; }
+                        } else if (action.current === 'moving') {
+                            // Simple delta move relative to start
+                            const dx = x - startPos.current.x;
+                            const dy = y - startPos.current.y;
+                            el.x += dx; el.y += dy;
+                            if(el.type === 'pen') el.points = el.points.map(p => ({x: p.x+dx, y: p.y+dy}));
+                            startPos.current = {x,y}; // Reset ref for next frame
+                        } else if (action.current === 'resizing') {
+                            el.width = x - el.x;
+                            el.height = y - el.y;
+                        }
+                        
+                        next[idx] = el;
+                        // Update selected element reference for renderer
+                        if(selectedElement && selectedElement.id === el.id) setSelectedElement(el);
+                        return next;
+                    });
+                };
+
+                const handleEnd = () => {
+                    if (action.current !== 'none') {
+                        saveState('Draw Action');
+                        action.current = 'none';
+                    }
+                };
+
+                // Add Listeners with Passive: False
+                canvas.addEventListener('touchstart', handleStart, { passive: false });
+                canvas.addEventListener('touchmove', handleMove, { passive: false });
+                canvas.addEventListener('touchend', handleEnd);
+                canvas.addEventListener('mousedown', handleStart);
+                canvas.addEventListener('mousemove', handleMove);
+                canvas.addEventListener('mouseup', handleEnd);
+
+                return () => {
+                    canvas.removeEventListener('touchstart', handleStart);
+                    canvas.removeEventListener('touchmove', handleMove);
+                    canvas.removeEventListener('touchend', handleEnd);
+                    canvas.removeEventListener('mousedown', handleStart);
+                    canvas.removeEventListener('mousemove', handleMove);
+                    canvas.removeEventListener('mouseup', handleEnd);
+                };
+            }, [isDrawingMode, tool, elements, selectedElement]);
+
+            // --- TEXT SELECTION (CUSTOM MENU) ---
+            useEffect(() => {
+                // 1. Suppress Native Menu
+                const handleContext = (e) => e.preventDefault();
+                document.addEventListener('contextmenu', handleContext);
+
+                // 2. Detect Selection
+                const handleSelection = () => {
+                    if(isDrawingMode) return;
+                    const sel = window.getSelection();
+                    if(!sel.rangeCount || sel.isCollapsed) {
+                        setSelectionBounds(null);
+                        return;
+                    }
+                    const range = sel.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    if(rect.width > 0) {
+                        setSelectionBounds({top: rect.top - 55, left: rect.left + (rect.width/2)});
+                        setSelectedText(sel.toString());
+                        playSound('click'); // Audible feedback
+                    }
+                };
+
+                document.addEventListener('selectionchange', handleSelection);
+                return () => {
+                    document.removeEventListener('contextmenu', handleContext);
+                    document.removeEventListener('selectionchange', handleSelection);
+                };
+            }, [isDrawingMode]);
+
+            // --- HANDLERS ---
+            const execCmd = (cmd, val) => {
+                document.execCommand(cmd, false, val);
+                editorRef.current.focus();
+            };
+
+            const deleteSelected = () => {
+                if(selectedElement) {
+                    setElements(prev => prev.filter(e => e.id !== selectedElement.id));
+                    setSelectedElement(null);
+                    saveState('Delete Shape');
+                    playSound('delete');
+                }
+            };
+
+            const handleAICommit = (text, method) => {
+                if(method === 'replace') {
+                    execCmd('insertText', text); // Better than HTML replace for undo safety usually
+                    setContent(editorRef.current.innerHTML);
+                } else {
+                    const html = `<br/><div class="p-4 bg-slate-800 border-l-4 border-[#0d9488] my-2 rounded-r">${text}</div><br/>`;
+                    execCmd('insertHTML', html);
+                    setContent(editorRef.current.innerHTML);
+                }
+                setAiFeature(null);
+                setSelectionBounds(null);
+                saveState('AI Gen');
+                playSound('save');
+            };
+
+            return (
+                <div className={`flex flex-col h-[100dvh] w-full relative ${isDrawingMode ? 'drawing-mode' : ''}`}>
+                    
+                    {/* MODALS */}
+                    {showHistory && <HistoryModal history={history} currentIndex={historyIndex} onClose={()=>setShowHistory(false)} onRestore={restoreState} />}
+                    {aiFeature && <AIReviewModal type={aiFeature} originalText={selectedText} onClose={()=>setAiFeature(null)} onCommit={handleAICommit} />}
+
+                    {/* CUSTOM SELECTION MENU */}
+                    {selectionBounds && !isDrawingMode && !aiFeature && (
+                        <div 
+                            className="fixed z-[9999] flex items-center gap-1 bg-slate-800 p-1.5 rounded-lg shadow-2xl border border-slate-600 animate-[fadeUp_0.15s]"
+                            style={{top: selectionBounds.top, left: selectionBounds.left, transform: 'translateX(-50%)'}}
+                            onMouseDown={e => e.preventDefault()} 
+                        >
+                            <button onClick={() => {navigator.clipboard.writeText(selectedText); playSound('save');}} className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded">Copy</button>
+                            <div className="w-px h-4 bg-slate-600"></div>
+                            <button onClick={() => setAiFeature('Fix Grammar')} className="px-3 py-1.5 text-xs font-bold text-[#2dd4bf] hover:bg-slate-700 rounded flex items-center gap-1"><i className="fas fa-magic"></i> Fix</button>
+                            <button onClick={() => setAiFeature('Summarize')} className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 rounded">Summarize</button>
+                        </div>
+                    )}
+
+                    {/* HEADER */}
+                    <header className="h-16 flex items-center justify-between px-4 bg-slate-900/80 backdrop-blur border-b border-white/10 z-30">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#0d9488] to-[#134e4a] rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(13,148,136,0.4)]">
+                                <span className="text-xl font-bold text-white font-['Space_Grotesk']">L</span>
+                            </div>
+                            <h1 className="font-['Space_Grotesk'] font-bold text-lg hidden md:block">Learnty Ultimate</h1>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all"><i className="fas fa-history"></i></button>
+                            <button onClick={() => {saveState('Manual'); playSound('save');}} className="px-5 py-2 rounded-full bg-[#0d9488] hover:bg-[#0f766e] text-white font-bold text-sm shadow-lg flex items-center gap-2"><i className="fas fa-save"></i> Save</button>
+                        </div>
+                    </header>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 relative flex overflow-hidden">
+                        
+                        {/* SIDEBAR */}
+                        <aside className="w-16 md:w-20 bg-slate-950/50 border-r border-white/5 flex flex-col items-center py-4 gap-4 z-30 backdrop-blur-sm">
+                            {/* Mode Toggle */}
+                            <div className="bg-slate-900 p-1 rounded-xl border border-white/10 flex flex-col gap-1">
+                                <button onClick={() => {setIsDrawingMode(false); playSound('click');}} className={`p-3 rounded-lg transition-all ${!isDrawingMode ? 'bg-slate-700 text-white' : 'text-slate-500'}`}><i className="fas fa-keyboard"></i></button>
+                                <button onClick={() => {setIsDrawingMode(true); playSound('click');}} className={`p-3 rounded-lg transition-all ${isDrawingMode ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><i className="fas fa-pen-nib"></i></button>
+                            </div>
+
+                            <div className="w-8 h-px bg-white/10"></div>
+
+                            {/* Tools */}
+                            {isDrawingMode ? (
+                                <div className="flex flex-col gap-2 animate-[pop_0.2s]">
+                                    {[
+                                        {id:'select', i:'mouse-pointer'}, 
+                                        {id:'pen', i:'pencil-alt'}, 
+                                        {id:'rect', i:'square'}, 
+                                        {id:'circle', i:'circle'}
+                                    ].map(t => (
+                                        <button key={t.id} onClick={()=>{setTool(t.id); setSelectedElement(null); playSound('click');}} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${tool===t.id ? 'text-[#0d9488] bg-[#0d9488]/20 border border-[#0d9488]' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                            <i className={`fas fa-${t.i}`}></i>
+                                        </button>
+                                    ))}
+                                    <div className="h-4"></div>
+                                    {selectedElement && (
+                                        <button onClick={deleteSelected} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all animate-[pop_0.2s]"><i className="fas fa-trash"></i></button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2 animate-[pop_0.2s]">
+                                    <button onClick={() => execCmd('bold')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><i className="fas fa-bold"></i></button>
+                                    <button onClick={() => execCmd('italic')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><i className="fas fa-italic"></i></button>
+                                    <button onClick={() => execCmd('insertUnorderedList')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"><i className="fas fa-list-ul"></i></button>
+                                    <button onClick={() => execCmd('formatBlock', 'H2')} className="w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold">H2</button>
+                                </div>
+                            )}
+                        </aside>
+
+                        {/* WORKSPACE */}
+                        <div className="flex-1 relative overflow-y-auto custom-scrollbar">
+                            <div className="min-h-full max-w-4xl mx-auto relative p-6 md:p-12">
+                                
+                                {/* Note Card */}
+                                <div className="relative bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-2xl min-h-[80vh]">
+                                    
+                                    {/* Drawing Layer */}
+                                    <canvas ref={canvasRef} className="drawing-canvas w-full h-full absolute inset-0 rounded-3xl" />
+
+                                    {/* Text Layer */}
+                                    <div 
+                                        ref={editorRef} 
+                                        className="editor-content p-8 md:p-10"
+                                        contentEditable={!isDrawingMode}
+                                        suppressContentEditableWarning={true}
+                                        dangerouslySetInnerHTML={{__html: content}}
+                                        onInput={e => setContent(e.currentTarget.innerHTML)}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* AI BRAIN FAB */}
+                    <div className="absolute bottom-8 right-8 flex flex-col-reverse items-end gap-4 z-50">
+                        <button 
+                            onClick={() => {setAiMenuOpen(!aiMenuOpen); playSound('click');}} 
+                            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(13,148,136,0.5)] transition-all duration-300 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-12' : 'bg-[#0d9488] text-white hover:scale-110'}`}
+                        >
+                            {aiMenuOpen ? <i className="fas fa-times text-xl"></i> : <BrainIcon className="w-8 h-8" />}
+                        </button>
+                        
+                        {aiMenuOpen && (
+                            <div className="flex flex-col gap-2 mb-2 animate-[slide-up_0.2s]">
+                                {['Expand', 'Simplify', 'Fix Grammar', 'Summarize'].map((f, i) => (
+                                    <button 
+                                        key={f}
+                                        onClick={() => {setAiFeature(f); setAiMenuOpen(false); playSound('click');}}
+                                        className="bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-xl shadow-xl hover:bg-[#0d9488] hover:border-[#0d9488] transition-all text-sm font-medium flex items-center justify-between min-w-[160px] group"
+                                        style={{animationDelay: `${i*0.05}s`}}
+                                    >
+                                        {f}
+                                        <i className="fas fa-chevron-left opacity-0 group-hover:opacity-100 transition-opacity text-xs"></i>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <GalaxyBackground />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+

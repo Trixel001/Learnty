@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Learnty Note Ultimate</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@700&display=swap');
+
+        :root { --brand: #0d9488; --bg: #0f172a; }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg);
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+            /* CRITICAL: Disables native long-press menus */
+            -webkit-touch-callout: none; 
+            user-select: none;
+        }
+
+        /* --- Editor Typography --- */
+        .editor-content { 
+            outline: none; 
+            min-height: 70vh; 
+            position: relative; 
+            z-index: 10; 
+            line-height: 1.7;
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            padding-bottom: 300px;
+            /* Allow text selection here, but keep callout disabled */
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .editor-content h1 { font-family: 'Space Grotesk'; font-size: 2rem; color: #2dd4bf; margin: 1.5rem 0 0.5rem; line-height: 1.1; }
+        .editor-content h2 { font-family: 'Space Grotesk'; font-size: 1.5rem; color: #f1f5f9; margin: 1.2rem 0 0.5rem; }
+        .editor-content p { margin-bottom: 1rem; }
+        .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .editor-content blockquote { border-left: 3px solid var(--brand); padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem 0; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 0 8px 8px 0; }
+        
+        /* Seamless Insert Animation */
+        @keyframes highlightFade {
+            0% { background-color: rgba(13, 148, 136, 0.3); }
+            100% { background-color: transparent; }
+        }
+        .newly-added { animation: highlightFade 2s ease-out; border-radius: 4px; }
+
+        /* --- Canvas --- */
+        .drawing-canvas { 
+            pointer-events: none; 
+            position: absolute; top: 0; left: 0; 
+            z-index: 20; 
+            touch-action: none; 
+        }
+        .mode-draw .drawing-canvas { pointer-events: auto; cursor: crosshair; }
+        .mode-draw .editor-content { opacity: 0.5; filter: blur(0.5px); pointer-events: none; user-select: none; }
+
+        /* --- Glassmorphism UI --- */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+        
+        /* Animations */
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeScale { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--brand); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useLayoutEffect } = React;
+
+        /* --- UTILS --- */
+        const playSound = (type) => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                const config = {
+                    click: { f: 600, t: 'sine', d: 0.05 },
+                    save: { f: 400, t: 'triangle', d: 0.2 },
+                    history: { f: 300, t: 'sine', d: 0.15 },
+                    ai: { f: 200, t: 'square', d: 0.1 }
+                }[type] || { f: 440, t: 'sine', d: 0.1 };
+
+                osc.type = config.t;
+                osc.frequency.setValueAtTime(config.f, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(config.f/2, ctx.currentTime + config.d);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + config.d);
+                osc.start();
+                osc.stop(ctx.currentTime + config.d);
+            } catch(e) { /* Audio blocked */ }
+        };
+
+        /* --- COMPONENTS --- */
+
+        const Background = () => {
+            const ref = useRef(null);
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                if(ref.current) ref.current.appendChild(renderer.domElement);
+                
+                const geo = new THREE.BufferGeometry();
+                const pos = new Float32Array(600 * 3);
+                for(let i=0; i<1800; i++) pos[i] = (Math.random()-0.5)*30;
+                geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                const mat = new THREE.PointsMaterial({size:0.03, color:0x0d9488, transparent:true, opacity:0.4});
+                const stars = new THREE.Points(geo, mat);
+                scene.add(stars);
+                camera.position.z = 5;
+                
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    stars.rotation.y += 0.0002;
+                    renderer.render(scene, camera);
+                };
+                animate();
+                return () => { if(ref.current) ref.current.innerHTML = ''; }
+            }, []);
+            return <div ref={ref} className="fixed inset-0 pointer-events-none z-0" />;
+        };
+
+        const HistoryModal = ({ history, currentIndex, onClose, onRestore }) => (
+            <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+                <div className="w-full md:max-w-md glass-panel rounded-t-3xl md:rounded-2xl p-6 animate-[slideUp_0.3s]" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-white font-['Space_Grotesk']">Time Machine</h3>
+                        <button onClick={onClose}><i className="fas fa-times text-slate-400"></i></button>
+                    </div>
+                    <div className="space-y-2 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                        {[...history].reverse().map((h, i) => {
+                            const realIdx = history.length - 1 - i;
+                            return (
+                                <button key={h.time} onClick={() => onRestore(realIdx)} className={`w-full p-4 rounded-xl border flex justify-between items-center transition-all ${realIdx === currentIndex ? 'border-[#0d9488] bg-[#0d9488]/10' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
+                                    <div className="text-left">
+                                        <div className="text-sm font-bold text-white">{h.reason || 'Auto-save'}</div>
+                                        <div className="text-xs text-slate-400">{new Date(h.time).toLocaleTimeString()}</div>
+                                    </div>
+                                    {realIdx === currentIndex && <i className="fas fa-check text-[#0d9488]"></i>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const AIReviewPanel = ({ type, originalText, onClose, onApply }) => {
+            const [result, setResult] = useState('');
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                setTimeout(() => {
+                    const responses = {
+                        'Fix Grammar': `Corrected version: ${originalText} (Refined for clarity).`,
+                        'Summarize': `Executive Summary: The core concept involves leveraging neural networks for predictive text analysis.`,
+                        'Expand': `Detailed Analysis: ${originalText} suggests a deeper underlying pattern. When we examine the data...`,
+                        'Simplify': `Simply put: ${originalText.substring(0, 20)}...`
+                    };
+                    setResult(responses[type] || "Processed content ready.");
+                    setLoading(false);
+                    playSound('ai');
+                }, 1200);
+            }, [type]);
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+                    <div className="w-full md:max-w-lg glass-panel rounded-t-3xl md:rounded-2xl overflow-hidden animate-[slideUp_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0d9488] to-teal-900 flex items-center justify-center shadow-[0_0_15px_rgba(13,148,136,0.4)]">
+                                    <i className="fas fa-magic text-white text-xs"></i>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-white tracking-wide font-['Space_Grotesk']">AI ASSISTANT</h3>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{type}</p>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white"><i className="fas fa-times"></i></button>
+                        </div>
+                        <div className="p-6 min-h-[180px] flex flex-col relative">
+                            {loading ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                    <div className="w-8 h-8 border-2 border-[#0d9488] border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-xs text-[#0d9488] font-medium animate-pulse">Processing...</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 animate-[fadeScale_0.3s]">
+                                    <div className="text-xs font-bold text-slate-500 uppercase mb-1">Result</div>
+                                    <div className="text-slate-200 text-sm leading-relaxed font-light border-l-2 border-[#0d9488] pl-4">{result}</div>
+                                </div>
+                            )}
+                        </div>
+                        {!loading && (
+                            <div className="p-4 bg-black/20 border-t border-white/5 flex gap-3">
+                                <button onClick={() => onApply(result, 'replace')} className="flex-1 py-3 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 text-sm font-medium">Replace Selection</button>
+                                <button onClick={() => onApply(result, 'insert')} className="flex-1 py-3 rounded-xl bg-[#0d9488] hover:bg-teal-600 text-white text-sm font-bold shadow-lg">Insert Below</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- MAIN APP --- */
+        const App = () => {
+            // State
+            const [content, setContent] = useState('<h1>Learnty Note</h1><p>Start typing or draw with the pencil...</p>');
+            const [mode, setMode] = useState('type');
+            const [tool, setTool] = useState('pen');
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+            const [showHistory, setShowHistory] = useState(false);
+            const [aiFeature, setAiFeature] = useState(null);
+            const [selection, setSelection] = useState(null);
+            const [aiMenuOpen, setAiMenuOpen] = useState(false);
+
+            // Refs
+            const editorRef = useRef(null);
+            const canvasRef = useRef(null);
+            const ctxRef = useRef(null);
+            const isDrawing = useRef(false);
+            const points = useRef([]); 
+            const startPos = useRef({x:0, y:0});
+            const snapshot = useRef(null);
+
+            // --- GLOBAL EVENT LISTENERS (Native Menu Blocker) ---
+            useEffect(() => {
+                const handleContextMenu = (e) => {
+                    e.preventDefault(); // Blocks Right Click / Long Press Menu
+                    return false;
+                };
+                document.addEventListener('contextmenu', handleContextMenu);
+                return () => document.removeEventListener('contextmenu', handleContextMenu);
+            }, []);
+
+            // --- INIT CANVAS ---
+            useLayoutEffect(() => {
+                const canvas = canvasRef.current;
+                const dpr = window.devicePixelRatio || 1;
+                // Fixed large size to prevent resize data loss
+                canvas.width = window.innerWidth * dpr;
+                canvas.height = 4000 * dpr;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#0d9488';
+                ctx.lineWidth = 3;
+                ctxRef.current = ctx;
+
+                // Initial Save
+                saveState('Init');
+            }, []);
+
+            // --- HISTORY SYSTEM ---
+            const saveState = (reason) => {
+                const html = editorRef.current ? editorRef.current.innerHTML : content;
+                const image = canvasRef.current ? canvasRef.current.toDataURL() : null;
+                const newState = { html, image, time: Date.now(), reason };
+                
+                const newHistory = [...history.slice(0, historyIndex + 1), newState];
+                if(newHistory.length > 15) newHistory.shift();
+                
+                setHistory(newHistory);
+                setHistoryIndex(newHistory.length - 1);
+                // Sync React state with DOM to prevent drift
+                setContent(html);
+            };
+
+            const restoreState = (idx) => {
+                const state = history[idx];
+                if(!state) return;
+                
+                // Restore Text (Direct DOM manipulation for speed + React State)
+                if(editorRef.current) editorRef.current.innerHTML = state.html;
+                setContent(state.html);
+                
+                // Restore Canvas
+                const canvas = canvasRef.current;
+                const ctx = ctxRef.current;
+                const dpr = window.devicePixelRatio || 1;
+                
+                ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                
+                if(state.image) {
+                    const img = new Image();
+                    img.src = state.image;
+                    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, 4000);
+                }
+
+                setHistoryIndex(idx);
+                setShowHistory(false);
+                playSound('history');
+            };
+
+            // --- DRAWING ENGINE ---
+            const getPos = (e) => {
+                const rect = canvasRef.current.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+
+            const startDraw = (e) => {
+                if (mode !== 'draw') return;
+                // Critical: Prevent scrolling only when drawing
+                if (e.cancelable) e.preventDefault();
+                
+                isDrawing.current = true;
+                const pos = getPos(e);
+                startPos.current = pos;
+                
+                if (tool === 'pen') {
+                    points.current = [pos];
+                } else {
+                    snapshot.current = ctxRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                }
+            };
+
+            const moveDraw = (e) => {
+                if (!isDrawing.current || mode !== 'draw') return;
+                if (e.cancelable) e.preventDefault();
+
+                const pos = getPos(e);
+                const ctx = ctxRef.current;
+
+                if (tool === 'pen') {
+                    points.current.push(pos);
+                    const pts = points.current;
+                    if (pts.length < 3) {
+                        const b = pts[0];
+                        ctx.beginPath();
+                        ctx.arc(b.x, b.y, ctx.lineWidth / 2, 0, Math.PI * 2, !0);
+                        ctx.fill();
+                        ctx.closePath();
+                        return;
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(pts[0].x, pts[0].y);
+                    for (let i = 1; i < pts.length - 2; i++) {
+                        const c = (pts[i].x + pts[i + 1].x) / 2;
+                        const d = (pts[i].y + pts[i + 1].y) / 2;
+                        ctx.quadraticCurveTo(pts[i].x, pts[i].y, c, d);
+                    }
+                    const i = pts.length - 2;
+                    ctx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y);
+                    ctx.stroke();
+                } else {
+                    ctx.putImageData(snapshot.current, 0, 0);
+                    ctx.beginPath();
+                    if (tool === 'rect') {
+                        ctx.rect(startPos.current.x, startPos.current.y, pos.x - startPos.current.x, pos.y - startPos.current.y);
+                    } else if (tool === 'circle') {
+                        const r = Math.sqrt(Math.pow(pos.x - startPos.current.x, 2) + Math.pow(pos.y - startPos.current.y, 2));
+                        ctx.arc(startPos.current.x, startPos.current.y, r, 0, 2 * Math.PI);
+                    }
+                    ctx.stroke();
+                }
+            };
+
+            const endDraw = () => {
+                if(isDrawing.current) {
+                    isDrawing.current = false;
+                    points.current = [];
+                    saveState('Draw');
+                }
+            };
+
+            // Attach Active Listeners (Passive: False for Scroll Blocking)
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                canvas.addEventListener('touchstart', startDraw, { passive: false });
+                canvas.addEventListener('touchmove', moveDraw, { passive: false });
+                canvas.addEventListener('touchend', endDraw);
+                canvas.addEventListener('mousedown', startDraw);
+                canvas.addEventListener('mousemove', moveDraw);
+                canvas.addEventListener('mouseup', endDraw);
+                return () => {
+                    canvas.removeEventListener('touchstart', startDraw);
+                    canvas.removeEventListener('touchmove', moveDraw);
+                    canvas.removeEventListener('touchend', endDraw);
+                    canvas.removeEventListener('mousedown', startDraw);
+                    canvas.removeEventListener('mousemove', moveDraw);
+                    canvas.removeEventListener('mouseup', endDraw);
+                };
+            }, [mode, tool]);
+
+            // --- SELECTION & AI ---
+            useEffect(() => {
+                const handleSel = () => {
+                    if(mode === 'draw') return;
+                    const sel = window.getSelection();
+                    if(sel.rangeCount > 0 && !sel.isCollapsed) {
+                        const range = sel.getRangeAt(0);
+                        const rect = range.getBoundingClientRect();
+                        if(rect.width > 0) {
+                            setSelection({ 
+                                text: sel.toString(), 
+                                range: range.cloneRange(), 
+                                top: rect.top, 
+                                left: rect.left + rect.width/2 
+                            });
+                        }
+                    } else {
+                        setSelection(null);
+                    }
+                };
+                document.addEventListener('selectionchange', handleSel);
+                return () => document.removeEventListener('selectionchange', handleSel);
+            }, [mode]);
+
+            const handleAICommit = (text, method) => {
+                editorRef.current.focus();
+                if (method === 'replace' && selection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(selection.range);
+                    document.execCommand('insertText', false, text);
+                } else {
+                    const html = `<div class="newly-added p-3 my-2 border-l-2 border-[#0d9488] bg-white/5 text-slate-200">${text}</div><br/>`;
+                    if (selection) {
+                        const range = selection.range;
+                        range.collapse(false);
+                        const div = document.createElement('div');
+                        div.innerHTML = html;
+                        range.insertNode(div);
+                    } else {
+                        document.execCommand('insertHTML', false, html);
+                    }
+                }
+                setAiFeature(null);
+                setSelection(null);
+                saveState('AI Edit');
+                playSound('save');
+            };
+
+            return (
+                <div className={`flex flex-col h-[100dvh] w-full relative overflow-hidden mode-${mode}`}>
+                    <Background />
+
+                    {showHistory && <HistoryModal history={history} currentIndex={historyIndex} onClose={()=>setShowHistory(false)} onRestore={restoreState} />}
+
+                    {aiFeature && (
+                        <AIReviewPanel 
+                            type={aiFeature} 
+                            originalText={selection ? selection.text : editorRef.current.innerText}
+                            onClose={() => setAiFeature(null)}
+                            onApply={handleAICommit}
+                        />
+                    )}
+
+                    {/* CUSTOM CONTEXT MENU (Replaces Native) */}
+                    {selection && !aiFeature && (
+                        <div 
+                            className="fixed z-[9999] flex gap-1 p-1 rounded-lg glass-panel animate-[fadeScale_0.15s]"
+                            style={{ top: Math.max(20, selection.top - 50), left: Math.min(window.innerWidth - 160, selection.left - 80) }}
+                            onMouseDown={e => e.preventDefault()} // Prevent focus loss
+                        >
+                            <button onClick={() => setAiFeature('Fix Grammar')} className="px-3 py-1.5 text-xs font-bold text-[#2dd4bf] hover:bg-white/10 rounded transition">Fix</button>
+                            <div className="w-px bg-white/10 my-1"></div>
+                            <button onClick={() => setAiFeature('Summarize')} className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded transition">Summarize</button>
+                        </div>
+                    )}
+
+                    {/* HEADER */}
+                    <header className="h-16 shrink-0 glass-panel flex items-center justify-between px-4 z-40 relative border-b-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#0d9488] to-teal-900 flex items-center justify-center shadow-lg shadow-teal-500/20">
+                                <span className="font-['Space_Grotesk'] font-bold text-white">L</span>
+                            </div>
+                            <span className="font-['Space_Grotesk'] font-bold text-lg text-white hidden md:block">Learnty Ultimate</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={()=>setShowHistory(true)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300"><i className="fas fa-history"></i></button>
+                            <button onClick={()=>saveState('Manual')} className="px-4 py-2 rounded-lg bg-[#0d9488] text-white text-xs font-bold shadow-lg hover:scale-105 transition-all">Save</button>
+                        </div>
+                    </header>
+
+                    {/* MAIN LAYOUT */}
+                    <main className="flex-1 relative flex flex-col md:flex-row overflow-hidden">
+                        
+                        {/* TOOLBAR */}
+                        <div className="order-2 md:order-1 w-full md:w-20 h-20 md:h-full glass-panel md:border-r border-t md:border-t-0 border-white/5 flex md:flex-col items-center justify-center gap-6 p-2 z-50 shrink-0">
+                            <div className="flex md:flex-col bg-black/40 p-1 rounded-xl border border-white/5">
+                                <button onClick={() => setMode('type')} className={`w-12 h-12 md:w-10 md:h-10 rounded-lg flex items-center justify-center transition-all ${mode==='type' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500'}`}><i className="fas fa-keyboard"></i></button>
+                                <button onClick={() => setMode('draw')} className={`w-12 h-12 md:w-10 md:h-10 rounded-lg flex items-center justify-center transition-all ${mode==='draw' ? 'bg-[#0d9488] text-white shadow-lg' : 'text-slate-500'}`}><i className="fas fa-pen-nib"></i></button>
+                            </div>
+
+                            <div className="w-px h-8 md:w-8 md:h-px bg-white/10"></div>
+
+                            {mode === 'type' ? (
+                                <div className="flex md:flex-col gap-3">
+                                    <button onMouseDown={e=>e.preventDefault()} onClick={() => document.execCommand('bold')} className="text-slate-400 hover:text-white"><i className="fas fa-bold"></i></button>
+                                    <button onMouseDown={e=>e.preventDefault()} onClick={() => document.execCommand('italic')} className="text-slate-400 hover:text-white"><i className="fas fa-italic"></i></button>
+                                    <button onMouseDown={e=>e.preventDefault()} onClick={() => document.execCommand('formatBlock', false, 'h1')} className="text-slate-400 hover:text-white font-bold text-xs">H1</button>
+                                    <button onMouseDown={e=>e.preventDefault()} onClick={() => document.execCommand('insertUnorderedList')} className="text-slate-400 hover:text-white"><i className="fas fa-list"></i></button>
+                                </div>
+                            ) : (
+                                <div className="flex md:flex-col gap-3">
+                                    <button onClick={()=>setTool('pen')} className={`w-10 h-10 rounded-lg flex items-center justify-center ${tool==='pen'?'bg-white/10 text-[#0d9488]':'text-slate-400'}`}><i className="fas fa-pencil-alt"></i></button>
+                                    <button onClick={()=>setTool('rect')} className={`w-10 h-10 rounded-lg flex items-center justify-center ${tool==='rect'?'bg-white/10 text-[#0d9488]':'text-slate-400'}`}><i className="far fa-square"></i></button>
+                                    <button onClick={()=>setTool('circle')} className={`w-10 h-10 rounded-lg flex items-center justify-center ${tool==='circle'?'bg-white/10 text-[#0d9488]':'text-slate-400'}`}><i className="far fa-circle"></i></button>
+                                    <button onClick={() => { const ctx = ctxRef.current; ctx.clearRect(0,0, canvasRef.current.width, canvasRef.current.height); saveState('Clear'); }} className="text-red-400 hover:text-red-300 mt-2"><i className="fas fa-trash"></i></button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* EDITOR */}
+                        <div className="order-1 md:order-2 flex-1 relative overflow-y-auto custom-scrollbar">
+                            <div className="max-w-3xl mx-auto p-4 md:p-12 min-h-full">
+                                <div className="relative min-h-[80vh] bg-slate-900/30 backdrop-blur-sm border border-white/5 rounded-3xl shadow-2xl overflow-hidden">
+                                    <canvas ref={canvasRef} className="drawing-canvas w-full h-full absolute inset-0" />
+                                    <div 
+                                        ref={editorRef}
+                                        className="editor-content p-8"
+                                        contentEditable={mode === 'type'}
+                                        suppressContentEditableWarning={true}
+                                        dangerouslySetInnerHTML={{__html: content}}
+                                        onBlur={()=>saveState('Blur')}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* AI FAB */}
+                    <div className="absolute bottom-24 md:bottom-10 right-6 z-50 flex flex-col items-end gap-4">
+                        {aiMenuOpen && (
+                            <div className="flex flex-col gap-2 animate-[slideUp_0.2s] mb-2">
+                                {['Summarize', 'Fix Grammar', 'Expand'].map((action, i) => (
+                                    <button 
+                                        key={action}
+                                        onClick={() => { setAiFeature(action); setAiMenuOpen(false); }}
+                                        style={{animationDelay: i*0.05+'s'}}
+                                        className="bg-slate-800/90 backdrop-blur border border-white/10 text-white px-5 py-3 rounded-xl shadow-xl hover:bg-[#0d9488] hover:border-[#0d9488] transition-all text-sm font-medium"
+                                    >
+                                        {action}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <button 
+                            onClick={() => { setAiMenuOpen(!aiMenuOpen); playSound('click'); }}
+                            className={`w-16 h-16 rounded-full shadow-[0_0_30px_rgba(13,148,136,0.3)] flex items-center justify-center transition-all duration-300 ${aiMenuOpen ? 'bg-white text-[#0d9488] rotate-45' : 'bg-[#0d9488] text-white hover:scale-110'}`}
+                        >
+                            {aiMenuOpen ? <i className="fas fa-plus text-xl"></i> : <i className="fas fa-brain text-2xl"></i>}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

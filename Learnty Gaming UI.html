@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Learnty - Active Session</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f172a;
+            overflow: hidden;
+            color: white;
+            margin: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pop-in {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Syntax Highlighting */
+        .syntax-var { color: #c084fc; } /* Purple */
+        .syntax-val { color: #4ade80; } /* Green */
+        .syntax-num { color: #fb923c; } /* Orange */
+        .syntax-def { color: #60a5fa; } /* Blue */
+        
+        textarea::-webkit-scrollbar { width: 4px; }
+        textarea::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        /* --- SOUND ENGINE --- */
+        const playSound = (type) => {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if (type === 'select') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'lock') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.linearRampToValueAtTime(880, now + 0.1); 
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'level_up') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+                osc.frequency.linearRampToValueAtTime(1200, now + 0.4);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                osc.start(now);
+                osc.stop(now + 1.0);
+            }
+        };
+
+        /* --- ICONS --- */
+        const CloseIcon = ({className}) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+        const BrainIcon = ({className}) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>;
+        const LightningIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z" /></svg>;
+        const BulbIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"></path><path d="M9 21h6"></path></svg>;
+        const SendIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>;
+        const ChevronLeftIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+        const ChevronRightIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const CheckIcon = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+
+        /* --- GALAXY BACKGROUND --- */
+        const GalaxyBackground = () => {
+            const mountRef = useRef(null);
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                mountRef.current.appendChild(renderer.domElement);
+                
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particlesCount = 600;
+                const posArray = new Float32Array(particlesCount * 3);
+                const colors = new Float32Array(particlesCount * 3);
+                const colorTeal = new THREE.Color("#0d9488");
+                const colorBlue = new THREE.Color("#6366f1");
+                
+                for(let i = 0; i < particlesCount * 3; i+=3) {
+                    posArray[i] = (Math.random() - 0.5) * 15;
+                    posArray[i+1] = (Math.random() - 0.5) * 15;
+                    posArray[i+2] = (Math.random() - 0.5) * 15;
+                    const mixedColor = Math.random() > 0.5 ? colorTeal : colorBlue;
+                    colors[i] = mixedColor.r;
+                    colors[i+1] = mixedColor.g;
+                    colors[i+2] = mixedColor.b;
+                }
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                const particlesMesh = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.6 }));
+                scene.add(particlesMesh);
+                camera.position.z = 5;
+                
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    particlesMesh.rotation.y += 0.0005;
+                    renderer.render(scene, camera);
+                };
+                animate();
+                const handleResize = () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => { 
+                    window.removeEventListener('resize', handleResize);
+                    if(mountRef.current) mountRef.current.innerHTML = ''; 
+                };
+            }, []);
+            return <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none" />;
+        };
+
+        /* --- HUD --- */
+        const Header = ({ current, total, xp, streak }) => (
+            <header className="fixed top-0 left-0 w-full px-6 py-4 z-40 flex flex-col gap-4 bg-gradient-to-b from-[#0f172a] to-transparent">
+                <div className="flex items-center justify-between">
+                    <button onClick={() => window.location.reload()} className="w-10 h-10 rounded-full bg-slate-800/50 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all">
+                        <CloseIcon className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 ${streak > 1 ? 'animate-pulse' : ''}`}>
+                            <LightningIcon className="w-4 h-4 text-yellow-400" />
+                            <span className="text-xs font-bold text-yellow-200">{streak}x</span>
+                        </div>
+                        <div className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#0d9488]/30 bg-[#0d9488]/10">
+                            <BrainIcon className="w-4 h-4 text-[#2dd4bf]" />
+                            <span className="text-xs font-bold text-[#2dd4bf]">{xp} XP</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#0d9488] transition-all duration-500 ease-out" style={{ width: `${((current + 1) / total) * 100}%` }}></div>
+                </div>
+            </header>
+        );
+
+        /* --- BREATHING INTRO --- */
+        const BreathIntro = ({ onComplete }) => {
+            const [phase, setPhase] = useState("Inhale"); 
+            useEffect(() => {
+                const t1 = setTimeout(() => setPhase("Hold"), 4000);
+                const t2 = setTimeout(() => setPhase("Exhale"), 8000);
+                const t3 = setTimeout(() => onComplete(), 12000);
+                return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+            }, []);
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full z-20 relative animate-[pop-in_1s_ease-out] w-full">
+                    <div className={`
+                        w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-[#0d9488] to-blue-500 blur-2xl 
+                        transition-all duration-[4000ms] ease-in-out
+                        ${phase === 'Inhale' ? 'scale-125 opacity-100' : ''}
+                        ${phase === 'Hold' ? 'scale-125 opacity-80 shadow-[0_0_60px_#0d9488]' : ''}
+                        ${phase === 'Exhale' ? 'scale-75 opacity-40' : ''}
+                    `}></div>
+                    <h2 className="mt-12 text-3xl md:text-4xl font-light tracking-[0.3em] uppercase text-white transition-all duration-500">{phase}</h2>
+                    <p className="mt-4 text-sm text-slate-500 font-mono">Syncing Neural State...</p>
+                </div>
+            );
+        };
+
+        /* --- REFLECTION MODAL (CENTERED) --- */
+        const ReflectionModal = ({ onSubmit }) => {
+            const [reasoning, setReasoning] = useState("");
+
+            // Handle Enter Key to Submit
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent newline
+                    if (reasoning.trim().length > 0) {
+                        onSubmit(); // Trigger submit
+                    }
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-[pop-in_0.3s_ease-out]">
+                    <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-2xl transform transition-all">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="p-2 bg-[#0d9488]/10 rounded-lg">
+                                <BrainIcon className="w-5 h-5 text-[#2dd4bf]" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white">Active Recall</h3>
+                        </div>
+                        
+                        <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                            To lock this answer, briefly explain <span className="text-white font-bold">why</span> you chose it. 
+                            (Press Enter to send)
+                        </p>
+                        
+                        <textarea 
+                            value={reasoning}
+                            onChange={(e) => setReasoning(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="I chose this because..."
+                            className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white placeholder-slate-600 focus:border-[#0d9488] focus:ring-1 focus:ring-[#0d9488] focus:outline-none h-24 resize-none mb-4 text-sm"
+                            autoFocus
+                        />
+                        
+                        <button 
+                            onClick={onSubmit}
+                            className="w-full py-3.5 bg-[#0d9488] hover:bg-[#0f766e] rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <SendIcon className="w-4 h-4" />
+                            Submit & Reveal
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- RESULT MODAL (CENTERED) --- */
+        const ResultModal = ({ isCorrect, explanation, onContinue }) => {
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-[pop-in_0.3s_ease-out]">
+                    <div className={`w-full max-w-md border rounded-2xl p-6 shadow-2xl transform transition-all ${isCorrect ? 'bg-green-950/40 border-green-500/30' : 'bg-red-950/40 border-red-500/30'}`}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`p-2 rounded-full ${isCorrect ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {isCorrect ? <CheckIcon className="w-6 h-6" /> : <CloseIcon className="w-6 h-6" />}
+                            </div>
+                            <h3 className={`text-xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                                {isCorrect ? "Correct!" : "Not Quite"}
+                            </h3>
+                        </div>
+                        
+                        <div className="bg-black/20 rounded-xl p-4 mb-6 border border-white/5">
+                            <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                <BulbIcon className="w-4 h-4" /> Insight
+                            </div>
+                            <p className="text-slate-200 text-sm leading-relaxed">
+                                {explanation}
+                            </p>
+                        </div>
+                        
+                        <button 
+                            onClick={onContinue}
+                            className="w-full py-3.5 bg-white hover:bg-slate-200 text-slate-900 rounded-xl font-bold shadow-lg transition-transform active:scale-95"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- QUIZ STEP --- */
+        const QuizStep = ({ data, onNext, savedState }) => {
+            const [selected, setSelected] = useState(savedState?.selected ?? null);
+            const [view, setView] = useState(savedState?.view ?? 'question'); 
+            const [isCorrect, setIsCorrect] = useState(savedState?.isCorrect ?? false);
+            
+            // If viewing history, we just display the state
+            const isReadOnly = !!savedState;
+
+            // Interactive Handlers
+            const handleCodeClick = (partId) => {
+                if (view !== 'question' || isReadOnly) return;
+                playSound('select');
+                setSelected(partId);
+            };
+
+            const handleOptionClick = (idx) => {
+                if (view !== 'question' || isReadOnly) return;
+                playSound('select');
+                setSelected(idx);
+            };
+
+            // Step 1: Lock Choice (Neutral)
+            const handleLock = () => {
+                if (selected === null) return;
+                playSound('lock');
+                setView('reflection');
+            };
+
+            // Step 2: Submit Reflection & Reveal
+            const handleSubmitReflection = () => {
+                const correct = selected === data.correctId;
+                setIsCorrect(correct);
+                
+                if (correct) playSound('correct');
+                else playSound('wrong');
+
+                setView('result');
+            };
+
+            // Step 3: Continue from Result
+            const handleContinue = () => {
+                onNext({selected, isCorrect, view: 'result'});
+            };
+
+            return (
+                <>
+                    {/* MAIN CONTENT CONTAINER */}
+                    <div className={`
+                        w-full max-w-2xl flex flex-col items-center pb-24 md:pb-0
+                        ${isReadOnly ? 'opacity-90' : 'animate-[pop-in_0.4s_ease-out]'}
+                    `}>
+                        
+                        {/* Badge */}
+                        <div className="text-center mb-4 md:mb-6">
+                            <span className={`
+                                inline-block px-3 py-1 rounded text-[10px] font-bold tracking-[0.2em] uppercase mb-3 border
+                                ${data.type === 'Concept' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}
+                                ${data.type === 'Prediction' ? 'bg-[#0d9488]/20 text-[#2dd4bf] border-[#0d9488]/30' : ''}
+                                ${data.type === 'Bug' ? 'bg-red-500/20 text-red-400 border-red-500/30' : ''}
+                            `}>{data.type}</span>
+                            <h2 className="text-xl md:text-3xl font-bold text-white leading-tight px-4">{data.question}</h2>
+                        </div>
+
+                        {/* Content Card */}
+                        <div className={`
+                            w-[90%] glass-panel rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden group font-mono text-base md:text-xl text-slate-300 transition-all duration-300
+                            ${isReadOnly && !isCorrect ? 'border-red-500/30' : ''}
+                            ${isReadOnly && isCorrect ? 'border-green-500/30' : ''}
+                        `}>
+                             {data.codeParts ? (
+                                <div className="flex flex-wrap gap-2 items-center justify-center">
+                                    {data.codeParts.map((part) => (
+                                        <span 
+                                            key={part.id}
+                                            onClick={() => handleCodeClick(part.id)}
+                                            className={`
+                                                p-2 rounded cursor-pointer transition-all border border-transparent
+                                                ${view === 'question' && selected === part.id ? 'bg-white/10 border-white/30 scale-105' : 'hover:bg-white/5'}
+                                                ${(view === 'result' || isReadOnly) && part.id === data.correctId ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}
+                                                ${(view === 'result' || isReadOnly) && !isCorrect && selected === part.id ? 'bg-red-500/20 text-red-300' : ''}
+                                            `}
+                                        >
+                                            {part.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="whitespace-pre-wrap text-center break-words">
+                                    {data.codeDisplay}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Options Grid */}
+                        {data.options && (
+                            <div className="w-[90%] grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                {data.options.map((opt, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => handleOptionClick(idx)}
+                                        disabled={view !== 'question' || isReadOnly}
+                                        className={`
+                                            p-4 rounded-xl border font-bold transition-all text-sm md:text-base relative
+                                            ${view === 'question' && selected === idx ? 'bg-white/10 border-white text-white scale-[1.02]' : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-800/80'}
+                                            ${(view === 'result' || isReadOnly) && idx === data.correctId ? '!bg-green-500/20 !border-green-500 !text-green-400' : ''}
+                                            ${(view === 'result' || isReadOnly) && !isCorrect && selected === idx ? '!bg-red-500/20 !border-red-500 !text-red-400 opacity-60' : ''}
+                                            ${(view === 'result' || isReadOnly) && idx !== data.correctId && selected !== idx ? 'opacity-20' : ''}
+                                        `}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Bottom Action Bar (Sticky on Mobile) */}
+                        <div className="fixed bottom-0 left-0 w-full p-4 bg-slate-900/80 backdrop-blur-md border-t border-white/5 flex justify-center md:relative md:bg-transparent md:border-0 md:p-0">
+                             <div className="w-full max-w-md">
+                                {view === 'question' && !isReadOnly && (
+                                    <button 
+                                        onClick={handleLock}
+                                        disabled={selected === null}
+                                        className={`
+                                            w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all
+                                            ${selected !== null 
+                                                ? 'bg-[#0d9488] hover:bg-[#0f766e] hover:shadow-[0_0_20px_rgba(13,148,136,0.4)] transform active:scale-95' 
+                                                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                                            }
+                                        `}
+                                    >
+                                        Lock Answer
+                                    </button>
+                                )}
+
+                                {isReadOnly && (
+                                    <div className="text-center text-slate-500 text-sm italic">
+                                        Review Mode • Swipe Left to Return
+                                    </div>
+                                )}
+                             </div>
+                        </div>
+
+                    </div>
+
+                    {/* REFLECTION MODAL (Separate from main flow) */}
+                    {view === 'reflection' && !isReadOnly && (
+                        <ReflectionModal onSubmit={handleSubmitReflection} />
+                    )}
+
+                    {/* RESULT MODAL (Separate from main flow) */}
+                    {view === 'result' && !isReadOnly && (
+                        <ResultModal 
+                            isCorrect={isCorrect} 
+                            explanation={data.explanation} 
+                            onContinue={handleContinue} 
+                        />
+                    )}
+                </>
+            );
+        };
+
+        /* --- LEVEL UP SCREEN (UPDATED & LIVELY) --- */
+        const LevelUp = ({ accuracy, xp }) => {
+            useEffect(() => playSound('level_up'), []);
+            
+            // Determine Style based on Performance
+            let title = "COMPLETED";
+            let colorClass = "text-slate-200";
+            let bgGlow = "bg-slate-500";
+            let particleCount = 20;
+
+            if (accuracy >= 90) {
+                title = "LEGENDARY!";
+                colorClass = "text-yellow-400";
+                bgGlow = "bg-yellow-500";
+                particleCount = 50;
+            } else if (accuracy >= 70) {
+                title = "IMPRESSIVE!";
+                colorClass = "text-[#2dd4bf]";
+                bgGlow = "bg-[#0d9488]";
+                particleCount = 30;
+            }
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl animate-[pop-in_0.6s_ease-out] p-6 overflow-hidden">
+                    
+                    {/* Confetti Particles (CSS Animation) */}
+                    {[...Array(particleCount)].map((_, i) => (
+                        <div 
+                            key={i}
+                            className="absolute w-2 h-2 rounded-sm animate-[confetti-fall_3s_linear_infinite]"
+                            style={{
+                                left: `${Math.random() * 100}%`,
+                                top: `-${Math.random() * 20}%`,
+                                backgroundColor: Math.random() > 0.5 ? '#0d9488' : (Math.random() > 0.5 ? '#fbbf24' : '#ffffff'),
+                                animationDelay: `${Math.random() * 2}s`,
+                                animationDuration: `${2 + Math.random() * 3}s`
+                            }}
+                        ></div>
+                    ))}
+
+                    <div className="w-full max-w-sm text-center relative z-10">
+                        <div className="inline-block relative">
+                            <div className={`absolute inset-0 ${bgGlow} blur-3xl animate-pulse opacity-60`}></div>
+                            <BrainIcon className="w-24 h-24 md:w-32 md:h-32 text-white relative z-10 mb-8 drop-shadow-2xl animate-[float_3s_infinite]" />
+                            
+                            {/* Floating Stars/Decor */}
+                            <div className="absolute -top-4 -right-4 text-yellow-400 text-2xl animate-bounce">✨</div>
+                            <div className="absolute bottom-0 -left-6 text-[#2dd4bf] text-xl animate-bounce" style={{animationDelay: '0.2s'}}>✨</div>
+                        </div>
+                        
+                        <h1 className={`text-4xl md:text-6xl font-black mb-2 tracking-tight ${colorClass} drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]`}>
+                            {title}
+                        </h1>
+                        <p className="text-slate-300 text-base md:text-lg mb-10 font-medium">
+                            Neural pathways reinforced.
+                        </p>
+                        
+                        <div className="bg-white/5 rounded-2xl p-6 border border-white/10 mb-8 backdrop-blur-md shadow-2xl">
+                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/5">
+                                <span className="text-slate-400">Accuracy</span>
+                                <span className={`font-mono font-bold text-xl ${accuracy >= 80 ? 'text-green-400' : 'text-white'}`}>{accuracy}%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-400">Total XP</span>
+                                <span className="text-[#2dd4bf] font-mono font-bold text-xl">+{xp}</span>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="w-full py-4 bg-gradient-to-r from-[#0d9488] to-[#0f766e] rounded-xl font-bold text-white shadow-[0_0_30px_rgba(13,148,136,0.4)] transition-all active:scale-95 hover:scale-105"
+                        >
+                            Continue Journey
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- DATA & MAIN APP --- */
+        const stepsData = [
+            {
+                id: 1,
+                type: "Prediction",
+                question: "What does this print?",
+                codeDisplay: <><span className="syntax-def">print</span>(<span className="syntax-num">10</span> + <span className="syntax-num">5</span> * <span className="syntax-num">2</span>)</>,
+                options: ["30", "20", "Error", "25"],
+                correctId: 1,
+                explanation: "In Python, Multiplication (*) happens before Addition (+). So 5 * 2 = 10. Then 10 + 10 = 20."
+            },
+            {
+                id: 2,
+                type: "Concept",
+                question: "Identify the String Value",
+                codeParts: [
+                    {id: 0, text: "username"},
+                    {id: 1, text: "="},
+                    {id: 2, text: '"Learnty"'}
+                ],
+                correctId: 2,
+                explanation: "Text inside quotes is called a String. The variable 'username' is just a label for that value."
+            },
+            {
+                id: 3,
+                type: "Bug",
+                question: "Where is the Syntax Error?",
+                codeDisplay: <><span className="syntax-def">print</span>(<span className="syntax-val">"Hello World"</span></>,
+                options: ["Missing \"", "Missing )", "Missing ;", "No Error"],
+                correctId: 1,
+                explanation: "Functions like print() must act like a sandwich: they always need an opening '(' and a closing ')'."
+            },
+            {
+                id: 4,
+                type: "Prediction",
+                question: "What happens here?",
+                codeDisplay: <><span className="syntax-def">print</span>(<span className="syntax-val">"Game"</span> + <span className="syntax-val">"Over"</span>)</>,
+                options: ["GameOver", "Game Over", "Error", "Game+Over"],
+                correctId: 0,
+                explanation: "When you use '+' on strings, they glue together (concatenate) directly without adding spaces."
+            },
+            {
+                id: 5,
+                type: "Concept",
+                question: "Select the Integer (Number)",
+                codeParts: [
+                    {id: 0, text: "player_score"},
+                    {id: 1, text: "="},
+                    {id: 2, text: "500"}
+                ],
+                correctId: 2,
+                explanation: "Whole numbers without quotes are called Integers. They are used for math."
+            },
+            {
+                id: 6,
+                type: "Prediction",
+                question: "Will this code run?",
+                codeDisplay: <>
+                    <div className="text-left pl-4">
+                        <span className="syntax-var">xp</span> = <span className="syntax-num">100</span><br/>
+                        <span className="syntax-def">if</span> <span className="syntax-var">xp</span> > <span className="syntax-num">50</span>:<br/>
+                        &nbsp;&nbsp;<span className="syntax-def">print</span>(<span className="syntax-val">"Level Up"</span>)
+                    </div>
+                </>,
+                options: ["Yes", "No", "Error", "Maybe"],
+                correctId: 0,
+                explanation: "Yes! Since 100 is greater than 50, the condition is True, so the indented code block executes."
+            },
+            {
+                id: 7,
+                type: "Boss",
+                question: "FINAL BOSS: Calculate Output",
+                codeDisplay: <>
+                    <div className="text-left pl-4">
+                        <span className="syntax-var">base</span> = <span className="syntax-num">10</span><br/>
+                        <span className="syntax-var">mult</span> = <span className="syntax-num">2</span><br/>
+                        <span className="syntax-def">print</span>(<span className="syntax-var">base</span> * <span className="syntax-var">mult</span> + <span className="syntax-num">5</span>)
+                    </div>
+                </>,
+                options: ["17", "25", "105", "20"],
+                correctId: 1,
+                explanation: "Substitute the variables: 10 * 2 = 20. Then 20 + 5 = 25. You just acted like a Python interpreter!"
+            }
+        ];
+
+        const App = () => {
+            const [stage, setStage] = useState('intro'); // intro, game, victory
+            const [activeStepIndex, setActiveStepIndex] = useState(0);
+            const [viewingStepIndex, setViewingStepIndex] = useState(0); // For swiping history
+            
+            // History State: {[stepId]: {selected, isCorrect, view}}
+            const [history, setHistory] = useState({});
+            
+            const [xp, setXp] = useState(1200);
+            const [streak, setStreak] = useState(1);
+            const [correctCount, setCorrectCount] = useState(0);
+
+            // --- SWIPE LOGIC ---
+            const touchStart = useRef(null);
+            const touchEnd = useRef(null);
+
+            const onTouchStart = (e) => {
+                touchEnd.current = null; 
+                touchStart.current = e.targetTouches[0].clientX;
+            };
+            const onTouchMove = (e) => { 
+                touchEnd.current = e.targetTouches[0].clientX; 
+            };
+            const onTouchEnd = () => {
+                if (!touchStart.current || !touchEnd.current) return;
+                const distance = touchStart.current - touchEnd.current;
+                const isLeftSwipe = distance > 50;
+                const isRightSwipe = distance < -50;
+
+                if (isRightSwipe) {
+                    // Go Back (Review)
+                    if (viewingStepIndex > 0) {
+                        setViewingStepIndex(prev => prev - 1);
+                    }
+                }
+
+                if (isLeftSwipe) {
+                    // Go Forward (Return to Active)
+                    if (viewingStepIndex < activeStepIndex) {
+                        setViewingStepIndex(prev => prev + 1);
+                    }
+                }
+            };
+            
+            const handleIntroComplete = () => setStage('game');
+
+            const handleNextStep = (resultState) => {
+                // Save History
+                setHistory(prev => ({
+                    ...prev,
+                    [activeStepIndex]: resultState
+                }));
+
+                if (resultState.isCorrect) {
+                    setXp(prev => prev + 150 + (streak * 10));
+                    setStreak(prev => prev + 1);
+                    setCorrectCount(prev => prev + 1);
+                } else {
+                    setStreak(1);
+                }
+
+                if (activeStepIndex < stepsData.length - 1) {
+                    const nextIndex = activeStepIndex + 1;
+                    setActiveStepIndex(nextIndex);
+                    setViewingStepIndex(nextIndex); // Follow the active step
+                } else {
+                    setStage('victory');
+                }
+            };
+
+            return (
+                <div 
+                    className="relative w-full h-[100dvh] flex flex-col bg-[#0f172a] overflow-hidden"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                >
+                    <GalaxyBackground />
+                    
+                    {stage === 'game' && (
+                        <Header 
+                            current={viewingStepIndex} 
+                            total={stepsData.length} 
+                            xp={xp} 
+                            streak={streak} 
+                        />
+                    )}
+
+                    <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full h-full overflow-y-auto md:overflow-hidden pt-20 md:pt-0">
+                        {stage === 'intro' && <BreathIntro onComplete={handleIntroComplete} />}
+                        
+                        {stage === 'game' && (
+                            <>
+                                {/* Render either the Active Step or a History Step */}
+                                <QuizStep 
+                                    key={viewingStepIndex} 
+                                    data={stepsData[viewingStepIndex]} 
+                                    onNext={handleNextStep} 
+                                    savedState={history[viewingStepIndex]}
+                                />
+
+                                {/* Navigation Hints */}
+                                {viewingStepIndex < activeStepIndex && (
+                                    <div className="absolute right-4 top-1/2 animate-pulse text-white/30">
+                                        <ChevronRightIcon className="w-8 h-8" />
+                                    </div>
+                                )}
+                                {viewingStepIndex > 0 && (
+                                    <div className="absolute left-4 top-1/2 text-white/30">
+                                        <ChevronLeftIcon className="w-8 h-8" />
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        
+                        {stage === 'victory' && (
+                            <LevelUp 
+                                accuracy={Math.round((correctCount / stepsData.length) * 100)} 
+                                xp={xp - 1200} // Just show gained xp
+                            />
+                        )}
+                    </main>
+
+                    {/* Vignette Focus Effect */}
+                    {stage === 'game' && (
+                        <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(15,23,42,0.9)_100%)]"></div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
+Three.js
