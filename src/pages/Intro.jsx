@@ -5,12 +5,12 @@ import { Brain, ArrowRight, Book, Zap, CheckCircle, Gamepad2, Anchor } from 'luc
 import PageTransition from '../components/PageTransition';
 
 const SlideOne = () => (
-    <div className="text-center flex flex-col items-center animate-[fadeIn_0.8s_ease-out] w-full max-w-4xl px-4">
-        <div className="inline-flex items-center justify-center px-4 py-2 mb-8 rounded-full bg-[#0d9488]/10 border border-[#0d9488]/30 text-[#0d9488]">
+    <div className="text-center flex flex-col items-center w-full max-w-4xl px-4">
+        <div className="inline-flex items-center justify-center px-4 py-2 mb-6 rounded-full bg-[#0d9488]/10 border border-[#0d9488]/30 text-[#0d9488]">
             <Brain className="w-5 h-5 mr-2 animate-pulse" />
             <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase">System Upgrade</span>
         </div>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-xl">
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-xl">
             Innovating <br /> knowledge <br /> acquisition.
         </h1>
         <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed">
@@ -20,9 +20,9 @@ const SlideOne = () => (
 );
 
 const SlideTwo = () => (
-    <div className="flex flex-col items-center justify-center gap-6 md:gap-10 w-full max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
+    <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md px-6 text-center">
         <div className="w-full">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3 leading-tight text-white">
                 Books <span className="relative inline-block text-red-400">Decay.</span>
             </h2>
             <p className="text-lg text-slate-300 mb-2 leading-relaxed">
@@ -52,12 +52,12 @@ const SlideTwo = () => (
 );
 
 const SlideThree = () => (
-    <div className="flex flex-col items-center justify-center gap-8 w-full max-w-md px-6 animate-[slideInRight_0.6s_ease-out] text-center">
+    <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md px-6 text-center">
         <div className="w-full">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3 leading-tight text-white">
                 School is <span className="text-red-500">Bloatware.</span>
             </h2>
-            <p className="text-lg text-slate-300 mb-6 leading-relaxed">
+            <p className="text-lg text-slate-300 mb-4 leading-relaxed">
                 Too slow. Too expensive. <br />
                 <span className="opacity-75">Obsolete operating system.</span>
             </p>
@@ -76,8 +76,8 @@ const SlideThree = () => (
 );
 
 const SlideFour = () => (
-    <div className="w-full max-w-md md:max-w-lg mx-auto px-4 flex flex-col items-center animate-[zoomIn_0.5s_ease-out]">
-        <div className="relative w-full aspect-[4/3.5] mb-8">
+    <div className="w-full max-w-md md:max-w-lg mx-auto px-4 flex flex-col items-center">
+        <div className="relative w-full aspect-[4/3.5] mb-6">
             <div className="absolute -top-4 -right-2 z-20 w-12 h-12 md:w-16 md:h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-yellow-200 transform rotate-12 animate-[bounce_3s_infinite]">
                 <span className="text-yellow-900 font-bold text-xl md:text-2xl">A+</span>
             </div>
@@ -86,7 +86,7 @@ const SlideFour = () => (
             </div>
             <div className="w-full h-full bg-[#1e293b] rounded-3xl border border-slate-700 p-4 md:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#0d9488]/5 to-transparent pointer-events-none"></div>
-                <div className="grid grid-cols-2 gap-4 flex-1 mb-6">
+                <div className="grid grid-cols-2 gap-4 flex-1 mb-4">
                     <div className="bg-[#0f172a] rounded-2xl flex flex-col items-center justify-center p-4 border border-slate-700/50 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-[#0d9488]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <Zap className="w-8 h-8 text-yellow-400 mb-2 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
@@ -110,7 +110,7 @@ const SlideFour = () => (
                 </div>
             </div>
         </div>
-        <h1 className="text-3xl md:text-5xl font-extrabold mb-4 text-[#2dd4bf] drop-shadow-sm text-center">
+        <h1 className="text-3xl md:text-5xl font-extrabold mb-3 text-[#2dd4bf] drop-shadow-sm text-center">
             Play to Learn.
         </h1>
         <p className="text-sm md:text-lg text-slate-300 text-center max-w-md leading-relaxed">
@@ -157,24 +157,24 @@ const Intro = () => {
                         Skip Intro
                     </button>
                 </header>
-                <main className="flex-1 flex items-center justify-center relative z-10 w-full h-full pt-10 pb-20">
+                <main className="flex-1 flex items-center justify-center relative z-10 w-full">
                     {currentSlide === 0 && <SlideOne />}
                     {currentSlide === 1 && <SlideTwo />}
                     {currentSlide === 2 && <SlideThree />}
                     {currentSlide === 3 && <SlideFour />}
                 </main>
-                <footer className="fixed bottom-0 w-full p-6 md:p-8 flex flex-col items-center gap-6 z-50 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent">
-                    <div className="flex gap-3 md:gap-4">
+                <footer className="fixed bottom-0 w-full p-4 md:p-6 flex flex-col items-center gap-4 z-50 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent">
+                    <div className="flex gap-2 md:gap-3">
                         {[...Array(totalSlides)].map((_, idx) => (
                             <button key={idx} onClick={() => setCurrentSlide(idx)}
-                                className={`h-2 md:h-2.5 rounded-full transition-all duration-500 ${idx === currentSlide ? 'w-8 md:w-10 bg-[#0d9488] shadow-[0_0_10px_#0d9488]' : 'w-2.5 md:w-3.5 bg-slate-700 hover:bg-slate-600'}`}/>
-                        ))}
+                                className={`h-2 rounded-full transition-all duration-500 ${idx === currentSlide ? 'w-8 bg-[#0d9488] shadow-[0_0_10px_#0d9488]' : 'w-2 bg-slate-700 hover:bg-slate-600'}`}/>
+                        ))}  
                     </div>
                     <button onClick={nextSlide}
-                        className="group relative w-full max-w-xs md:max-w-sm py-4 md:py-5 bg-[#0d9488] rounded-full overflow-hidden shadow-[0_0_20px_rgba(13,148,136,0.3)] transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(13,148,136,0.5)]">
-                        <div className="flex items-center justify-center gap-2 font-bold text-lg md:text-xl text-white">
+                        className="group relative w-full max-w-xs md:max-w-sm py-3.5 md:py-4 bg-[#0d9488] rounded-full overflow-hidden shadow-[0_0_20px_rgba(13,148,136,0.3)] transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(13,148,136,0.5)]">
+                        <div className="flex items-center justify-center gap-2 font-bold text-base md:text-lg text-white">
                             {currentSlide === totalSlides - 1 ? 'Start Playing' : 'Continue'}
-                            <ArrowRight className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </div>
                     </button>
                 </footer>
